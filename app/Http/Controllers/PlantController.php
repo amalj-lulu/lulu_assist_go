@@ -23,7 +23,6 @@ class PlantController extends Controller
         $validated = $request->validate([
             'name' => 'required|string|max:255',
             'code' => 'required|string|max:100|unique:plants,code',
-            'location' => 'required|string|max:255',
         ]);
 
         Plant::create($validated);
@@ -46,7 +45,6 @@ class PlantController extends Controller
         $validated = $request->validate([
             'name' => 'required|string|max:255',
             'code' => 'required|string|max:100|unique:plants,code,' . $plant->id,
-            'location' => 'required|string|max:255',
         ]);
 
         $plant->update($validated);

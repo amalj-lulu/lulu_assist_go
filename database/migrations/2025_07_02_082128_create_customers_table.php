@@ -13,13 +13,12 @@ return new class extends Migration
      */
     public function up()
     {
-        Schema::create('plants', function (Blueprint $table) {
-            $table->id();
+        Schema::create('customers', function (Blueprint $table) {
+            $table->uuid('id')->primary();
             $table->string('name');
-            $table->string('code')->unique();
+            $table->string('mobile')->unique();
             $table->timestamps();
         });
-
     }
 
     /**
@@ -29,6 +28,6 @@ return new class extends Migration
      */
     public function down()
     {
-        Schema::dropIfExists('plants');
+        Schema::dropIfExists('customers');
     }
 };
