@@ -67,7 +67,7 @@
                             <a href="{{ route('plant-user.index') }}"
                                 class="nav-link {{ request()->routeIs('plant-user.index') ? 'active' : '' }}">
                                 <i class="nav-icon fas fa-users"></i>
-                                <p>Plant Users 123</p>
+                                <p>Plant Users</p>
                             </a>
                         </li>
                         <li class="nav-item has-treeview {{ request()->is('master/plants*') ? 'menu-open' : '' }}">
