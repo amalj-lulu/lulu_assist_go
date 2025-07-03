@@ -41,7 +41,7 @@ class PlantUserController extends Controller
             'email'    => 'required|email|unique:users,email',
             'mobile'   => 'nullable|string|max:20',
             'password' => 'required|string|min:6|confirmed',
-            'plants'   => 'nullable|array',
+            'plants'   => 'required|array',
             'plants.*' => 'exists:plants,id',
         ]);
 
@@ -77,7 +77,7 @@ class PlantUserController extends Controller
             'email'    => ['required', 'email', Rule::unique('users')->ignore($plant_user->id)],
             'mobile'   => 'nullable|string|max:20',
             'password' => 'nullable|string|min:6|confirmed',
-            'plants'   => 'nullable|array',
+            'plants'   => 'required|array',
             'plants.*' => 'exists:plants,id',
         ]);
 

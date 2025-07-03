@@ -96,7 +96,7 @@
                     <div class="col-md-6 mb-4">
                         <label for="plants">Assign Plants</label>
                         <select name="plants[]" id="plants"
-                            class="form-control select2bs4 @error('plants') is-invalid @enderror" multiple
+                            class="form-control select2 @error('plants') is-invalid @enderror" multiple
                             data-placeholder="Select Plants" style="width: 100%;">
                             @foreach ($plants as $plant)
                                 <option value="{{ $plant->id }}"
@@ -112,7 +112,7 @@
                 </div>
 
                 <div class="d-flex justify-content-end mt-3">
-                    <button type="submit" class="btn btn-success mr-2">
+                    <button type="submit" class="btn btn-primary mr-2">
                         <i class="fas fa-save mr-1"></i> Update
                     </button>
                     <a href="{{ route('plant-user.index') }}" class="btn btn-secondary">

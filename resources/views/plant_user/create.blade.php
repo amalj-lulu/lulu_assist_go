@@ -8,20 +8,18 @@
         <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
             <h3 class="card-title mb-0"><i class="fas fa-user-plus mr-2"></i> Add New Plant User</h3>
         </div>
-
-        <form method="POST" action="{{ route('plant-user.store') }}">
-            @csrf
-            <div class="card-body">
-                @if ($errors->any())
-                    <div class="alert alert-danger">
-                        <ul class="mb-0">
-                            @foreach ($errors->all() as $error)
-                                <li><i class="fas fa-exclamation-circle mr-1 text-danger"></i>{{ $error }}</li>
-                            @endforeach
-                        </ul>
-                    </div>
-                @endif
-
+        <div class="card-body">
+            @if ($errors->any())
+                <div class="alert alert-danger">
+                    <ul class="mb-0">
+                        @foreach ($errors->all() as $error)
+                            <li><i class="fas fa-exclamation-circle mr-1 text-danger"></i>{{ $error }}</li>
+                        @endforeach
+                    </ul>
+                </div>
+            @endif
+            <form method="POST" action="{{ route('plant-user.store') }}">
+                @csrf
                 <div class="row">
                     <!-- Name -->
                     <div class="col-md-6 mb-3">
@@ -97,7 +95,7 @@
                     <div class="col-md-6 mb-3">
                         <label for="plants">Assign Plants</label>
                         <select name="plants[]" id="plants"
-                            class="form-control select2bs4 @error('plants') is-invalid @enderror" multiple="multiple"
+                            class="form-control select2  @error('plants') is-invalid @enderror" multiple="multiple"
                             data-placeholder="Select Plants" style="width: 100%;">
                             @foreach ($plants as $plant)
                                 <option value="{{ $plant->id }}"
@@ -111,16 +109,16 @@
                         @enderror
                     </div>
                 </div>
-            </div>
 
-            <div class="card-footer text-right bg-light">
-                <button type="submit" class="btn btn-success">
-                    <i class="fas fa-save mr-1"></i> Create User
-                </button>
-                <a href="{{ route('plant-user.index') }}" class="btn btn-secondary ml-2">
-                    <i class="fas fa-times-circle mr-1"></i> Cancel
-                </a>
-            </div>
-        </form>
+                <div class="d-flex justify-content-end mt-3">
+                    <button type="submit" class="btn btn-primary mr-2">
+                        <i class="fas fa-save mr-1"></i> Create
+                    </button>
+                    <a href="{{ route('plant-user.index') }}" class="btn btn-secondary">
+                        <i class="fas fa-times-circle mr-1"></i> Cancel
+                    </a>
+                </div>
+            </form>
+        </div>
     </div>
 @endsection

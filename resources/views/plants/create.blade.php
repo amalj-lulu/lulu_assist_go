@@ -30,7 +30,14 @@
                         <span class="invalid-feedback">{{ $message }}</span>
                     @enderror
                 </div>
-                <button type="submit" class="btn btn-primary">Create Plant</button>
+                <div class="d-flex justify-content-end mt-3">
+                    <button type="submit" class="btn btn-primary mr-2">
+                        <i class="fas fa-save mr-1"></i> Create Plant
+                    </button>
+                    <a href="{{ route('plant-user.index') }}" class="btn btn-secondary">
+                        <i class="fas fa-times-circle mr-1"></i> Cancel
+                    </a>
+                </div>
             </form>
         </div>
     </div>

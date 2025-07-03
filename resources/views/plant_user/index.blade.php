@@ -28,7 +28,7 @@
             @else
                 <div class="table-responsive">
                     <table class="table table-bordered table-hover table-striped">
-                        <thead class="thead-dark">
+                        <thead>
                             <tr>
                                 <th>Name</th>
                                 <th>Email</th>

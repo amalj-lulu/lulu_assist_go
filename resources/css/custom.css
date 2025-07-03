@@ -1,7 +1,127 @@
-/* Global heading size override */
-h1 { font-size: 2rem; }   /* Default ~2.5rem */
-h2 { font-size: 1.75rem; } /* Default ~2rem */
-h3 { font-size: 1.5rem; }  /* Default ~1.75rem */
-h4 { font-size: 1.25rem; } /* Default ~1.5rem */
-h5 { font-size: 1rem; }    /* Default ~1.25rem */
-h6 { font-size: 0.875rem; }/* Default ~1rem */
+/* === SINGLE SELECT STYLING === */
+.select2-container--default .select2-selection--single {
+  height: calc(2.25rem + 2px);
+  padding: 0.375rem 0.75rem;
+  font-size: 0.875rem;
+  line-height: 1.5;
+  border: 1px solid #ced4da;
+  border-radius: 0.25rem;
+  background-color: #fff;
+  color: #495057;
+  display: flex;
+  align-items: center;
+  position: relative;
+}
+
+.select2-container--default .select2-selection--single .select2-selection__rendered {
+  color: #495057;
+  padding: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  flex: 1;
+}
+
+.select2-container--default .select2-selection--single .select2-selection__arrow {
+  height: 100%;
+  top: 0;
+  right: 0.5rem;
+  width: 1.5rem;
+  position: absolute;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* === MULTI SELECT STYLING (AdminLTE compatible) === */
+.select2-container--default .select2-selection--multiple {
+  min-height: calc(2.25rem + 2px);
+  font-size: 0.875rem;
+  border: 1px solid #ced4da;
+  border-radius: 0.25rem;
+  padding: 0.25rem 0.5rem;
+  background-color: #fff;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+/* Each tag */
+.select2-container--default .select2-selection--multiple .select2-selection__choice {
+  background-color: #007bff;
+  color: #fff;
+  border: none;
+  font-size: 0.75rem;
+  border-radius: 0.2rem;
+  display: inline-flex;
+  align-items: center;
+  margin: 0.125rem;
+  padding: 0.25rem 0.5rem;
+  max-width: 100%;
+  position: relative;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Label */
+.select2-container--default .select2-selection--multiple .select2-selection__choice__display {
+  order: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 100%;
+}
+
+/* Close button */
+.select2-container--default .select2-selection--multiple .select2-selection__choice__remove {
+  order: 2;
+  background: none;
+  border: none;
+  color: #fff;
+  font-weight: bold;
+  font-size: 1rem;
+  margin-left: 0.35rem;
+  cursor: pointer;
+  line-height: 1;
+  padding: 0;
+  width: auto;
+  display: inline-block;
+  position: relative;
+  top: auto;
+  right: auto;
+  transform: none;
+}
+
+.select2-container--default .select2-selection--multiple .select2-selection__choice__remove:hover {
+  color: #5b05f0;
+}
+.select2-container--default .select2-selection--multiple .select2-selection__choice__remove:hover, .select2-container--default .select2-selection--multiple .select2-selection__choice__remove:focus {
+    background-color: #007bff;
+    color: #333;
+    outline: none;
+}
+
+/* Keep it visible but clean */
+.select2-container--default .select2-selection--multiple .select2-search--inline {
+  display: inline-block;
+  width: auto;
+  margin: 0.125rem;
+}
+
+.select2-container--default .select2-selection--multiple .select2-search__field {
+  border: none;
+  outline: none;
+  font-size: 0.875rem;
+  padding: 0;
+  margin: 0;
+  width: auto;
+  min-width: 6rem;
+}
+
+/* Placeholder color and fallback */
+.select2-container--default .select2-search__field {
+  outline: none !important;
+  box-shadow: none !important;
+  border: none !important;
+}
