@@ -16,7 +16,7 @@ class AuthController extends Controller
             'password' => 'required|string',
         ]);
 
-        $user = User::where('mobile', $request->mobile)
+        $user = User::where('mobile', $request->mobile)->with('plants')
             ->where('role', 'user')
             ->first();
 

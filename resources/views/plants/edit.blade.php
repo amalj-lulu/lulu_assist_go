@@ -1,45 +1,57 @@
-@extends('layouts.admin')
+<div data-modal-title="Edit Plant"></div>
 
-@section('title', 'Edit Plant')
-@section('page-title', 'Edit Plant: ' . $plant->name)
+<div class="card-body">
+    {{-- Validation Error Alert (for non-field specific errors) --}}
+    @if ($errors->any())
+        <div class="alert alert-danger">
+            <ul class="mb-0">
+                @foreach ($errors->all() as $error)
+                    <li><i class="fas fa-exclamation-circle text-danger mr-1"></i> {{ $error }}</li>
+                @endforeach
+            </ul>
+        </div>
+    @endif
 
-@section('content')
-    <div class="card">
-        <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
-            <h3 class="card-title mb-0"> Edit Plant</h3>
+    <form action="{{ route('plants.update', $plant) }}" method="POST">
+        @csrf
+        @method('PUT')
+
+        {{-- Name --}}
+        <div class="form-group">
+            <label for="name">Name</label>
+            <input type="text"
+                   name="name"
+                   id="name"
+                   value="{{ old('name', $plant->name) }}"
+                   class="form-control @error('name') is-invalid @enderror"
+                   required>
+            @error('name')
+                <span class="invalid-feedback d-block" role="alert">{{ $message }}</span>
+            @enderror
         </div>
 
-        <div class="card-body">
-            <form action="{{ route('plants.update', $plant) }}" method="POST">
-                @csrf
-                @method('PUT')
-
-                <div class="form-group">
-                    <label for="name">Name</label>
-                    <input type="text" name="name" class="form-control @error('name') is-invalid @enderror"
-                        id="name" value="{{ old('name', $plant->name) }}" required>
-                    @error('name')
-                        <span class="invalid-feedback">{{ $message }}</span>
-                    @enderror
-                </div>
-
-                <div class="form-group">
-                    <label for="code">Code</label>
-                    <input type="text" name="code" class="form-control @error('code') is-invalid @enderror"
-                        id="code" value="{{ old('code', $plant->code) }}" required>
-                    @error('code')
-                        <span class="invalid-feedback">{{ $message }}</span>
-                    @enderror
-                </div>
-                <div class="d-flex justify-content-end mt-3">
-                    <button type="submit" class="btn btn-primary mr-2">
-                        <i class="fas fa-save mr-1"></i> Update Plant
-                    </button>
-                    <a href="{{ route('plant-user.index') }}" class="btn btn-secondary">
-                        <i class="fas fa-times-circle mr-1"></i> Cancel
-                    </a>
-                </div>
-            </form>
+        {{-- Code --}}
+        <div class="form-group">
+            <label for="code">Code</label>
+            <input type="text"
+                   name="code"
+                   id="code"
+                   value="{{ old('code', $plant->code) }}"
+                   class="form-control @error('code') is-invalid @enderror"
+                   required>
+            @error('code')
+                <span class="invalid-feedback d-block" role="alert">{{ $message }}</span>
+            @enderror
         </div>
-    </div>
-@endsection
+
+        {{-- Buttons --}}
+        <div class="d-flex justify-content-end mt-3">
+            <button type="submit" class="btn btn-primary mr-2">
+                <i class="fas fa-save mr-1"></i> Update Plant
+            </button>
+            <button type="button" class="btn btn-secondary" data-dismiss="modal">
+                <i class="fas fa-times-circle mr-1"></i> Cancel
+            </button>
+        </div>
+    </form>
+</div>

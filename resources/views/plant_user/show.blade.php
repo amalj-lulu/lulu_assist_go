@@ -1,16 +1,6 @@
-@extends('layouts.admin')
 
-@section('title', 'User Details')
-@section('page-title', 'User Details: ' . $user->name)
+    <div data-modal-title=" User Details"></div>
 
-@section('content')
-<div class="card">
-    <div class="card-header">
-        <h3 class="card-title">User Details</h3>
-        <a href="{{ route('plant-user.index') }}" class="btn btn-sm btn-secondary float-right">
-            <i class="fas fa-arrow-left"></i> Back to Users
-        </a>
-    </div>
 
     <div class="card-body">
         <table class="table table-bordered">
@@ -30,11 +20,11 @@
                 <tr>
                     <th>Assigned Plants</th>
                     <td>
-                        @if($user->plants->isEmpty())
+                        @if ($user->plants->isEmpty())
                             <p>No plants assigned.</p>
                         @else
                             <ul class="mb-0">
-                                @foreach($user->plants as $plant)
+                                @foreach ($user->plants as $plant)
                                     <li>{{ $plant->name }} ({{ $plant->code ?? '' }})</li>
                                 @endforeach
                             </ul>
@@ -45,4 +35,3 @@
         </table>
     </div>
 </div>
-@endsection

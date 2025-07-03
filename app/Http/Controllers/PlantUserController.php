@@ -6,7 +6,11 @@ use App\Models\User;
 use App\Models\Plant;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\Rule;
+use Illuminate\Support\Facades\View;
+use Illuminate\Support\ViewErrorBag;
+
 
 class PlantUserController extends Controller
 {
@@ -36,23 +40,34 @@ class PlantUserController extends Controller
      */
     public function store(Request $request)
     {
-        $validated = $request->validate([
+        $validator = Validator::make($request->all(), [
             'name'     => 'required|string|max:255',
             'email'    => 'required|email|unique:users,email',
-            'mobile'   => 'nullable|string|max:20',
+            'mobile'   => 'required|string|max:20',
             'password' => 'required|string|min:6|confirmed',
             'plants'   => 'required|array',
             'plants.*' => 'exists:plants,id',
         ]);
+
+        if ($validator->fails()) {
+            return redirect()->back()
+                ->withErrors($validator)
+                ->withInput()
+                ->with('show_modal', true)
+                ->with('modal_url', route('plant-user.create'));
+        }
+
+        $validated = $validator->validated();
 
         $user = User::create([
             'name'     => $validated['name'],
             'email'    => $validated['email'],
             'mobile'   => $validated['mobile'] ?? null,
             'password' => Hash::make($validated['password']),
+            'role'     => 'user', // ensure the role is set
         ]);
 
-        $user->plants()->sync($validated['plants'] ?? []);
+        $user->plants()->sync($validated['plants']);
 
         return redirect()->route('plant-user.index')->with('success', 'User created successfully.');
     }
@@ -64,31 +79,48 @@ class PlantUserController extends Controller
     {
         $plants = Plant::all();
         $user = $plant_user->load('plants');
-        return view('plant_user.edit', compact('user', 'plants'));
+
+        // No need to manually dump errors; Laravel handles this automatically
+        return view('plant_user.edit', compact('plants', 'user'));
     }
+
 
     /**
      * Update the user and their plant assignments.
      */
     public function update(Request $request, User $plant_user)
     {
-        $validated = $request->validate([
+        $validator = Validator::make($request->all(), [
             'name'     => 'required|string|max:255',
             'email'    => ['required', 'email', Rule::unique('users')->ignore($plant_user->id)],
-            'mobile'   => 'nullable|string|max:20',
+            'mobile'   => 'required|string|max:20',
             'password' => 'nullable|string|min:6|confirmed',
             'plants'   => 'required|array',
             'plants.*' => 'exists:plants,id',
         ]);
 
+
+        if ($validator->fails()) {
+            return redirect()->back()
+                ->withErrors($validator)
+                ->withInput()
+                ->with('show_modal', true)
+                ->with('modal_url', route('plant-user.edit', $plant_user->id));
+        }
+
+
+        $validated = $validator->validated();
+
         $plant_user->update([
             'name'     => $validated['name'],
             'email'    => $validated['email'],
-            'mobile'   => $validated['mobile'] ?? null,
-            'password' => $validated['password'] ? Hash::make($validated['password']) : $plant_user->password,
+            'mobile'   => $validated['mobile'],
+            'password' => $validated['password']
+                ? Hash::make($validated['password'])
+                : $plant_user->password,
         ]);
 
-        $plant_user->plants()->sync($validated['plants'] ?? []);
+        $plant_user->plants()->sync($validated['plants']);
 
         return redirect()->route('plant-user.index')->with('success', 'User updated successfully.');
     }
@@ -103,7 +135,11 @@ class PlantUserController extends Controller
 
         return redirect()->route('plant-user.index')->with('success', 'User deleted successfully.');
     }
-    public function show(User $plant_user)  // match the route param name
+
+    /**
+     * Show the details of the user.
+     */
+    public function show(User $plant_user)
     {
         return view('plant_user.show', ['user' => $plant_user]);
     }

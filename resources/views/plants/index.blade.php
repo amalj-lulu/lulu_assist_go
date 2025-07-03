@@ -17,9 +17,10 @@
     <div class="card">
         <div class="card-header d-flex justify-content-between align-items-center">
             <h3 class="card-title mb-0">Plants</h3>
-            <a href="{{ route('plants.create') }}" class="btn btn-primary btn-sm ml-auto">
+            <a href="#" data-url="{{ route('plants.create') }}" class="btn btn-primary btn-sm ml-auto ajax-modal-btn">
                 <i class="fas fa-plus mr-1"></i> Create New Plant
             </a>
+
         </div>
 
         <div class="card-body">
@@ -43,10 +44,10 @@
                                     <td>{{ $plant->code }}</td>
                                     <td>{{ $plant->location }}</td>
                                     <td>
-                                        <a href="{{ route('plants.show', $plant) }}" class="btn btn-sm btn-info">
+                                        <a  href="#"  data-url="{{ route('plants.show', $plant) }}" class="btn btn-sm btn-info  ajax-modal-btn">
                                             <i class="fas fa-eye"></i>
                                         </a>
-                                        <a href="{{ route('plants.edit', $plant) }}" class="btn btn-sm btn-warning">
+                                        <a href="#"  data-url="{{ route('plants.edit', $plant) }}" class="btn btn-sm btn-warning ajax-modal-btn">
                                             <i class="fas fa-edit"></i>
                                         </a>
                                         <form action="{{ route('plants.destroy', $plant) }}" method="POST" style="display:inline;">

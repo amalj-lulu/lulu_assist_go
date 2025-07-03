@@ -17,7 +17,7 @@
     <div class="card">
         <div class="card-header d-flex justify-content-between align-items-center">
             <h3 class="card-title mb-0">Users</h3>
-            <a href="{{ route('plant-user.create') }}" class="btn btn-primary btn-sm ml-auto">
+            <a href="#" data-url="{{ route('plant-user.create') }}" class="ajax-modal-btn btn btn-primary btn-sm ml-auto">
                 <i class="fas fa-plus mr-1"></i> Add New User
             </a>
         </div>
@@ -49,11 +49,11 @@
                                         @endforeach
                                     </td>
                                     <td>
-                                        <a href="{{ route('plant-user.show', $user) }}" class="btn btn-sm btn-info">
+                                        <a href="#" data-url="{{ route('plant-user.show', $user) }}" class="btn btn-sm btn-info ajax-modal-btn">
                                             <i class="fas fa-eye"></i>
                                         </a>
 
-                                        <a href="{{ route('plant-user.edit', $user) }}" class="btn btn-sm btn-warning">
+                                        <a href="#" data-url="{{ route('plant-user.edit', $user) }}" class="btn btn-sm btn-warning ajax-modal-btn">
                                             <i class="fas fa-edit"></i>
                                         </a>
                                         <form action="{{ route('plant-user.destroy', $user) }}" method="POST"
