@@ -34,5 +34,5 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/{cart}', [CartController::class, 'getCartDetails']);
         Route::post('/{cartId}/remove-item', [CartController::class, 'removeItem']);
         Route::delete('/{cart}', [CartController::class, 'destroy']);
-    });
+    }); 
 });
