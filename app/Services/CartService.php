@@ -47,7 +47,11 @@ class CartService
             }
 
             DB::commit();
-            return response()->json(['message' => 'Cart updated', 'cart_id' => $cart->id], 200);
+            $cart->load(['items.serials']);
+            return response()->json([
+                'message' => 'Cart updated',
+                'cart' => $this->formatCartResponse($cart),
+            ], 200);
         } catch (\Exception $e) {
             DB::rollBack();
             return response()->json(['error' => 'Failed to update cart', 'details' => $e->getMessage()], 500);
@@ -166,18 +170,7 @@ class CartService
             return response()->json(['error' => 'Cart has been abandoned'], 400);
         }
 
-        return response()->json([
-            'cart_id' => $cart->id,
-            'customer_id' => $cart->customer_id,
-            'status' => $cart->status,
-            'items' => $cart->items->map(fn($item) => [
-                'product_id' => $item->product_id,
-                'product_name' => $item->product_name,
-                'quantity' => $item->quantity,
-                'ean_number' => $item->ean_number,
-                'serial_numbers' => $item->serials->pluck('serial_number'),
-            ]),
-        ], 200);
+        return response()->json($this->formatCartResponse($cart), 200);
     }
 
     public function abandonCart($cartId)
@@ -292,5 +285,27 @@ class CartService
             return response()->json(['error' => 'Customer not found'], 404);
         }
         return null; // Means customer exists
+    }
+    public function formatCartResponse($cart)
+    {
+        $cart->load([
+            'items' => fn($q) => $q->where('is_deleted', false),
+            'items.serials' => fn($q) => $q->where('is_deleted', false),
+        ]);
+
+        return [
+            'cart_id' => $cart->id,
+            'customer_id' => $cart->customer_id,
+            'status' => $cart->status,
+            'items' => $cart->items->map(function ($item) {
+                return [
+                    'product_id' => $item->product_id,
+                    'product_name' => $item->product_name,
+                    'quantity' => $item->quantity,
+                    'ean_number' => $item->ean_number,
+                    'serial_numbers' => $item->serials->pluck('serial_number')->values(),
+                ];
+            })->values(),
+        ];
     }
 }
