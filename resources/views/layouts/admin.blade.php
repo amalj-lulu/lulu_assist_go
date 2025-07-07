@@ -130,7 +130,7 @@
 
     {{-- SCRIPTS --}}
     <script>
-        document.addEventListener('DOMContentLoaded', function () {
+        document.addEventListener('DOMContentLoaded', function() {
             function loadModalViaAjax(url) {
                 if (!url) return;
 
@@ -146,10 +146,11 @@
                 $.ajax({
                     url: url,
                     type: 'GET',
-                    success: function (response) {
+                    success: function(response) {
                         $('#globalAjaxModalContent').html(response);
 
-                        const title = $('#globalAjaxModalContent').find('[data-modal-title]').data('modal-title');
+                        const title = $('#globalAjaxModalContent').find('[data-modal-title]').data(
+                            'modal-title');
                         if (title) {
                             $('#globalAjaxModalTitle').text(title);
                         }
@@ -158,13 +159,15 @@
                             dropdownParent: $('#globalAjaxModal')
                         });
                     },
-                    error: function (xhr) {
-                        let fallback = `<div class="modal-body text-danger">Failed to load content.</div>`;
+                    error: function(xhr) {
+                        let fallback =
+                            `<div class="modal-body text-danger">Failed to load content.</div>`;
                         let fallbackTitle = 'Error';
 
                         if (xhr.status === 422 || xhr.status === 200) {
                             $('#globalAjaxModalContent').html(xhr.responseText);
-                            const title = $('#globalAjaxModalContent').find('[data-modal-title]').data('modal-title');
+                            const title = $('#globalAjaxModalContent').find('[data-modal-title]').data(
+                                'modal-title');
                             if (title) {
                                 $('#globalAjaxModalTitle').text(title);
                             }
@@ -181,30 +184,36 @@
             }
 
             // Open modal when clicking button/link
-            $(document).on('click', '.ajax-modal-btn', function (e) {
+            $(document).on('click', '.ajax-modal-btn', function(e) {
                 e.preventDefault();
                 const url = $(this).data('url');
                 if (url) loadModalViaAjax(url);
             });
 
             // Clear modal content on close
-            $('#globalAjaxModal').on('hidden.bs.modal', function () {
+            $('#globalAjaxModal').on('hidden.bs.modal', function() {
                 $('#globalAjaxModalContent').html('');
                 $('#globalAjaxModalTitle').text('');
             });
 
             // Reopen modal after redirect (on validation error)
-            @if(session('show_modal') && session('modal_url'))
+            @if (session('show_modal') && session('modal_url'))
                 loadModalViaAjax(@json(session('modal_url')));
             @endif
+        });
+
+        $('.custom-file-input').on('change', function() {
+            let fileName = $(this).val().split('\\').pop();
+            $(this).next('.custom-file-label').html(fileName);
         });
     </script>
 
 </body>
+
 </html>
 @php
     $errors = session()->get('errors');
     if ($errors) {
-        dd($errors->all());  // Print all error messages
+        dd($errors->all()); // Print all error messages
     }
 @endphp

@@ -1,6 +1,6 @@
-
 {{-- Modal Title Setter --}}
-<div data-modal-title="Edit Plant User"></div>
+<div data-modal-title="Edit Plant User">
+</div>
 
 <div class="modal-body p-0">
     <div class="card border-0 shadow-sm m-3">
@@ -17,7 +17,7 @@
             @endif
 
             {{-- Edit User Form --}}
-            <form method="POST" action="{{ route('plant-user.update', $user->id) }}" id="editPlantUserForm">
+            <form method="POST" action="{{ route('plant-user.update', $user->id) }}" id="editPlantUserForm"  enctype="multipart/form-data">
                 @csrf
                 @method('PUT')
 
@@ -30,7 +30,7 @@
                                 <span class="input-group-text"><i class="fas fa-user"></i></span>
                             </div>
                             <input type="text" name="name" id="name" value="{{ old('name', $user->name) }}"
-                                   class="form-control @error('name') is-invalid @enderror" required>
+                                class="form-control @error('name') is-invalid @enderror" required>
                         </div>
                         @error('name')
                             <small class="text-danger">{{ $message }}</small>
@@ -45,7 +45,7 @@
                                 <span class="input-group-text"><i class="fas fa-envelope"></i></span>
                             </div>
                             <input type="email" name="email" id="email" value="{{ old('email', $user->email) }}"
-                                   class="form-control @error('email') is-invalid @enderror" required>
+                                class="form-control @error('email') is-invalid @enderror" required>
                         </div>
                         @error('email')
                             <small class="text-danger">{{ $message }}</small>
@@ -62,7 +62,7 @@
                                 <span class="input-group-text"><i class="fas fa-lock"></i></span>
                             </div>
                             <input type="password" name="password" id="password"
-                                   class="form-control @error('password') is-invalid @enderror">
+                                class="form-control @error('password') is-invalid @enderror">
                         </div>
                         @error('password')
                             <small class="text-danger">{{ $message }}</small>
@@ -77,7 +77,7 @@
                                 <span class="input-group-text"><i class="fas fa-check-circle"></i></span>
                             </div>
                             <input type="password" name="password_confirmation" id="password_confirmation"
-                                   class="form-control">
+                                class="form-control">
                         </div>
                     </div>
 
@@ -88,8 +88,9 @@
                             <div class="input-group-prepend">
                                 <span class="input-group-text"><i class="fas fa-phone"></i></span>
                             </div>
-                            <input type="text" name="mobile" id="mobile" value="{{ old('mobile', $user->mobile) }}"
-                                   class="form-control @error('mobile') is-invalid @enderror">
+                            <input type="text" name="mobile" id="mobile"
+                                value="{{ old('mobile', $user->mobile) }}"
+                                class="form-control @error('mobile') is-invalid @enderror">
                         </div>
                         @error('mobile')
                             <small class="text-danger">{{ $message }}</small>
@@ -100,8 +101,8 @@
                     <div class="col-md-6 mb-3">
                         <label for="plants">Assign Plants</label>
                         <select name="plants[]" id="plants"
-                                class="form-control select2 @error('plants') is-invalid @enderror"
-                                multiple data-placeholder="Select Plants" style="width: 100%;">
+                            class="form-control select2 @error('plants') is-invalid @enderror" multiple
+                            data-placeholder="Select Plants" style="width: 100%;">
                             @foreach ($plants as $plant)
                                 <option value="{{ $plant->id }}"
                                     {{ in_array($plant->id, old('plants', $user->plants->pluck('id')->toArray())) ? 'selected' : '' }}>
@@ -112,6 +113,36 @@
                         @error('plants')
                             <small class="text-danger d-block">{{ $message }}</small>
                         @enderror
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label for="profile_picture">Profile Picture</label>
+                        {{-- File input --}}
+                        <div class="custom-file">
+                            <input type="file"
+                                class="custom-file-input @error('profile_picture') is-invalid @enderror"
+                                id="profile_picture" name="profile_picture" accept="image/*">
+                            <label class="custom-file-label" for="profile_picture">Choose file</label>
+                        </div>
+                        @error('profile_picture')
+                            <small class="text-danger d-block">{{ $message }}</small>
+                        @enderror
+
+                        {{-- Preview new image after selection --}}
+                        <div id="preview-container" class="mt-2 d-none">
+                            <img id="preview-image" src="#" alt="Preview" width="100"
+                                class="rounded shadow-sm border">
+                        </div>
+                    </div>
+
+
+                    <div class="col-md-6 mb-3">
+                        {{-- Existing Image --}}
+                        @if ($user->profile_picture)
+                            <div class="mb-2">
+                                <img src="{{ asset('storage/' . $user->profile_picture) }}" width="100"
+                                    class="rounded shadow-sm" id="current-picture">
+                            </div>
+                        @endif
                     </div>
                 </div>
             </form>
@@ -128,4 +159,3 @@
         <i class="fas fa-times-circle mr-1"></i> Cancel
     </button>
 </div>
-

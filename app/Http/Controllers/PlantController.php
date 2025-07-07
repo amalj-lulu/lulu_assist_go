@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Plant;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Validator;
 
 class PlantController extends Controller
 {
@@ -20,10 +21,21 @@ class PlantController extends Controller
 
     public function store(Request $request)
     {
-        $validated = $request->validate([
+        $validator =  Validator::make($request->all(),[
             'name' => 'required|string|max:255',
             'code' => 'required|string|max:100|unique:plants,code',
         ]);
+
+        if ($validator->fails()) {
+            return redirect()->back()
+                ->withErrors($validator)
+                ->withInput()
+                ->with('show_modal', true)
+                ->with('modal_url', route('plants.create'));
+        }
+
+
+        $validated = $validator->validated();
 
         Plant::create($validated);
 

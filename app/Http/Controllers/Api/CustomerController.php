@@ -1,18 +1,20 @@
 <?php
+
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use App\Models\Customer;
+use App\Services\CartService;
 use Illuminate\Support\Facades\Validator;
 
 class CustomerController extends Controller
 {
-    public function register(Request $request)
+    public function register(Request $request, CartService $cartService)
     {
         $validator = Validator::make($request->all(), [
             'name'   => 'required|string|max:255',
-            'mobile' => 'required|string|unique:customers,mobile',
+            'mobile' => 'required|string',
         ]);
 
         if ($validator->fails()) {
@@ -22,11 +24,26 @@ class CustomerController extends Controller
             ], 422);
         }
 
-        $customer = Customer::create($validator->validated());
+        $validated = $validator->validated();
+
+        // Check if customer exists
+        $customer = Customer::where('mobile', $validated['mobile'])->first();
+
+        if (!$customer) {
+            $customer = Customer::create($validated);
+            $message = 'Customer registered successfully.';
+            $statusCode = 201;
+        } else {
+            $message = 'Customer already exists.';
+            $statusCode = 200;
+        }
+
+        $cart = $cartService->getCartDetailsByMobile($customer->id);
 
         return response()->json([
-            'message' => 'Customer registered successfully.',
-            'customer' => $customer
-        ], 201);
+            'message' => $message,
+            'customer' => $customer,
+            'cart' => $cart
+        ], $statusCode);
     }
 }

@@ -5,6 +5,7 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Api\CustomerController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\CartController;
+use App\Http\Controllers\Api\ProductLookupController;
 
 /*
 |--------------------------------------------------------------------------
@@ -27,6 +28,9 @@ Route::middleware('auth:sanctum')->group(function () {
 
     Route::post('/user/logout', [AuthController::class, 'logout']);
     Route::post('/customer/register', [CustomerController::class, 'register']);
+    Route::post('/products/fetch', [ProductLookupController::class, 'fetchFromPipo']);
+
+
 
     Route::prefix('cart')->group(function () {
         Route::post('/', [CartController::class, 'store']);
@@ -34,5 +38,6 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/{cart}', [CartController::class, 'getCartDetails']);
         Route::post('/{cartId}/remove-item', [CartController::class, 'removeItem']);
         Route::delete('/{cart}', [CartController::class, 'destroy']);
+        Route::post('/details', [CartController::class, 'details']);
     }); 
 });

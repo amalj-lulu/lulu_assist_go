@@ -1,4 +1,3 @@
-
 {{-- Modal Title Setter (used in JS to update modal header) --}}
 <span data-modal-title="Add New Plant User" style="display: none;"></span>
 
@@ -17,7 +16,7 @@
             @endif
 
             {{-- Form --}}
-            <form method="POST" action="{{ route('plant-user.store') }}" id="plantUserForm">
+            <form method="POST" action="{{ route('plant-user.store') }}" id="plantUserForm" enctype="multipart/form-data">
                 @csrf
 
                 <div class="row">
@@ -29,9 +28,11 @@
                                 <span class="input-group-text"><i class="fas fa-user"></i></span>
                             </div>
                             <input name="name" id="name" value="{{ old('name') }}"
-                                   class="form-control @error('name') is-invalid @enderror" required>
+                                class="form-control @error('name') is-invalid @enderror" required>
                         </div>
-                        @error('name') <small class="text-danger">{{ $message }}</small> @enderror
+                        @error('name')
+                            <small class="text-danger">{{ $message }}</small>
+                        @enderror
                     </div>
 
                     {{-- Email --}}
@@ -42,9 +43,11 @@
                                 <span class="input-group-text"><i class="fas fa-envelope"></i></span>
                             </div>
                             <input type="email" name="email" id="email" value="{{ old('email') }}"
-                                   class="form-control @error('email') is-invalid @enderror" required>
+                                class="form-control @error('email') is-invalid @enderror" required>
                         </div>
-                        @error('email') <small class="text-danger">{{ $message }}</small> @enderror
+                        @error('email')
+                            <small class="text-danger">{{ $message }}</small>
+                        @enderror
                     </div>
 
                     {{-- Password --}}
@@ -55,9 +58,11 @@
                                 <span class="input-group-text"><i class="fas fa-lock"></i></span>
                             </div>
                             <input type="password" name="password" id="password"
-                                   class="form-control @error('password') is-invalid @enderror" required>
+                                class="form-control @error('password') is-invalid @enderror" required>
                         </div>
-                        @error('password') <small class="text-danger">{{ $message }}</small> @enderror
+                        @error('password')
+                            <small class="text-danger">{{ $message }}</small>
+                        @enderror
                     </div>
 
                     {{-- Confirm Password --}}
@@ -68,7 +73,7 @@
                                 <span class="input-group-text"><i class="fas fa-check-circle"></i></span>
                             </div>
                             <input type="password" name="password_confirmation" id="password_confirmation"
-                                   class="form-control" required>
+                                class="form-control" required>
                         </div>
                     </div>
 
@@ -80,17 +85,19 @@
                                 <span class="input-group-text"><i class="fas fa-phone"></i></span>
                             </div>
                             <input name="mobile" id="mobile" value="{{ old('mobile') }}"
-                                   class="form-control @error('mobile') is-invalid @enderror">
+                                class="form-control @error('mobile') is-invalid @enderror">
                         </div>
-                        @error('mobile') <small class="text-danger">{{ $message }}</small> @enderror
+                        @error('mobile')
+                            <small class="text-danger">{{ $message }}</small>
+                        @enderror
                     </div>
 
                     {{-- Plants --}}
                     <div class="col-md-6 mb-3">
                         <label for="plants">Assign Plants</label>
                         <select name="plants[]" id="plants"
-                                class="form-control select2 @error('plants') is-invalid @enderror"
-                                multiple data-placeholder="Select Plants" style="width: 100%;">
+                            class="form-control select2 @error('plants') is-invalid @enderror" multiple
+                            data-placeholder="Select Plants" style="width: 100%;">
                             @foreach ($plants as $plant)
                                 <option value="{{ $plant->id }}"
                                     {{ in_array($plant->id, old('plants', [])) ? 'selected' : '' }}>
@@ -98,8 +105,23 @@
                                 </option>
                             @endforeach
                         </select>
-                        @error('plants') <small class="text-danger d-block">{{ $message }}</small> @enderror
+                        @error('plants')
+                            <small class="text-danger d-block">{{ $message }}</small>
+                        @enderror
                     </div>
+                    <div class="col-md-6 mb-3">
+                        <label for="profile_picture">Profile Picture</label>
+                        <div class="custom-file">
+                            <input type="file"
+                                class="custom-file-input @error('profile_picture') is-invalid @enderror"
+                                id="profile_picture" name="profile_picture" accept="image/*">
+                            <label class="custom-file-label" for="profile_picture">Choose file</label>
+                        </div>
+                        @error('profile_picture')
+                            <small class="text-danger d-block">{{ $message }}</small>
+                        @enderror
+                    </div>
+
                 </div>
             </form>
         </div>

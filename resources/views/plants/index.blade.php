@@ -33,7 +33,6 @@
                             <tr>
                                 <th>Name</th>
                                 <th>Code</th>
-                                <th>Location</th>
                                 <th style="width: 180px;">Actions</th>
                             </tr>
                         </thead>
@@ -42,7 +41,6 @@
                                 <tr>
                                     <td>{{ $plant->name }}</td>
                                     <td>{{ $plant->code }}</td>
-                                    <td>{{ $plant->location }}</td>
                                     <td>
                                         <a  href="#"  data-url="{{ route('plants.show', $plant) }}" class="btn btn-sm btn-info  ajax-modal-btn">
                                             <i class="fas fa-eye"></i>

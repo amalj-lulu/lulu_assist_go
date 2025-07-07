@@ -18,8 +18,6 @@ class CartService
             'customer_id' => 'required|uuid',
             'items' => 'required|array|min:1',
             'items.*.product_id' => 'required|integer',
-            'items.*.ean_number' => 'required|string',
-            'items.*.product_name' => 'required|string',
             'items.*.quantity' => 'required|integer|min:1',
             'items.*.serial_numbers' => 'required|array|min:1',
             'items.*.serial_numbers.*' => 'required|string',
@@ -47,7 +45,7 @@ class CartService
             }
 
             DB::commit();
-            $cart->load(['items.serials']);
+            $cart->load(['items.product', 'items.serials']);
             return response()->json([
                 'message' => 'Cart updated',
                 'cart' => $this->formatCartResponse($cart),
@@ -62,8 +60,6 @@ class CartService
     {
         $request->validate([
             'product_id' => 'required|integer',
-            'ean_number' => 'required|string',
-            'product_name' => 'required|string',
             'quantity' => 'required|integer|min:1',
             'serial_numbers' => 'required|array|min:1',
             'serial_numbers.*' => 'required|string',
@@ -93,7 +89,6 @@ class CartService
     {
         $request->validate([
             'product_id' => 'required|integer',
-            'ean_number' => 'required|string',
             'quantity' => 'required|integer|min:1',
             'serial_numbers' => 'required|array|min:1',
             'serial_numbers.*' => 'required|string',
@@ -112,7 +107,6 @@ class CartService
         try {
             $cartItem = CartItem::where('cart_id', $cartId)
                 ->where('product_id', $request->product_id)
-                ->where('ean_number', $request->ean_number)
                 ->where('is_deleted', false)
                 ->first();
 
@@ -158,10 +152,39 @@ class CartService
     public function getCartDetails($cartId)
     {
         $cart = Cart::with([
-            'items' => fn($q) => $q->where('is_deleted', false),
-            'items.serials' => fn($q) => $q->where('is_deleted', false)
+            'items' => function ($q) {
+                $q->where('is_deleted', false)
+                    ->with([
+                        'product', // Load related product
+                        'serials' => fn($query) => $query->where('is_deleted', false)
+                    ]);
+            }
+        ])->find($cartId);
+
+        if (!$cart) {
+            return response()->json(['error' => 'Cart not found'], 404);
+        }
+
+        if ($cart->status === 'abandoned') {
+            return response()->json(['error' => 'Cart has been abandoned'], 400);
+        }
+
+        return response()->json($this->formatCartResponse($cart), 200);
+    }
+
+    public function getCartDetailsByMobile($customer_id)
+    {
+        $cart = Cart::with([
+            'items' => function ($q) {
+                $q->where('is_deleted', false)->with([
+                    'product',
+                    'serials' => fn($query) => $query->where('is_deleted', false)
+                ]);
+            }
         ])
-            ->find($cartId);
+            ->where('customer_id', $customer_id)
+            ->where('status', 'active')
+            ->first();
 
         if (!$cart) {
             return response()->json(['error' => 'Cart not found'], 404);
@@ -170,7 +193,7 @@ class CartService
             return response()->json(['error' => 'Cart has been abandoned'], 400);
         }
 
-        return response()->json($this->formatCartResponse($cart), 200);
+        return $this->formatCartResponse($cart);
     }
 
     public function abandonCart($cartId)
@@ -242,7 +265,6 @@ class CartService
     {
         $cartItem = CartItem::where('cart_id', $cart->id)
             ->where('product_id', $item['product_id'])
-            ->where('ean_number', $item['ean_number'])
             ->where('is_deleted', false)
             ->first();
 
@@ -252,8 +274,6 @@ class CartService
             $cartItem = CartItem::create([
                 'cart_id' => $cart->id,
                 'product_id' => $item['product_id'],
-                'ean_number' => $item['ean_number'],
-                'product_name' => $item['product_name'],
                 'quantity' => $item['quantity'],
                 'created_by' => $createdBy,
                 'customer_id' => $cart->customer_id,
@@ -300,9 +320,10 @@ class CartService
             'items' => $cart->items->map(function ($item) {
                 return [
                     'product_id' => $item->product_id,
-                    'product_name' => $item->product_name,
+                    'product_name' => $item->product->product_name,
                     'quantity' => $item->quantity,
-                    'ean_number' => $item->ean_number,
+                    'ean_number' => $item->product->ean_number,
+                    'created_by' => $item->created_by,
                     'serial_numbers' => $item->serials->pluck('serial_number')->values(),
                 ];
             })->values(),

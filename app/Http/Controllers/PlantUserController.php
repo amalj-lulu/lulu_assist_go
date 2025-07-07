@@ -6,10 +6,11 @@ use App\Models\User;
 use App\Models\Plant;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\Rule;
-use Illuminate\Support\Facades\View;
-use Illuminate\Support\ViewErrorBag;
+use Intervention\Image\Facades\Image;
+use Illuminate\Support\Str;
 
 
 class PlantUserController extends Controller
@@ -47,6 +48,7 @@ class PlantUserController extends Controller
             'password' => 'required|string|min:6|confirmed',
             'plants'   => 'required|array',
             'plants.*' => 'exists:plants,id',
+            'profile_picture' => 'nullable|image|mimes:jpg,jpeg,png|max:2048',
         ]);
 
         if ($validator->fails()) {
@@ -59,11 +61,20 @@ class PlantUserController extends Controller
 
         $validated = $validator->validated();
 
+        $profilePath = null;
+
+        if ($request->hasFile('profile_picture')) {
+            $profilePath = $request->file('profile_picture')->store('profile_pictures', 'public');
+        }
+
+
         $user = User::create([
             'name'     => $validated['name'],
             'email'    => $validated['email'],
             'mobile'   => $validated['mobile'] ?? null,
             'password' => Hash::make($validated['password']),
+            'profile_picture' => $profilePath,
+            'profile_thumb' => "GD",
             'role'     => 'user', // ensure the role is set
         ]);
 
@@ -84,21 +95,18 @@ class PlantUserController extends Controller
         return view('plant_user.edit', compact('plants', 'user'));
     }
 
-
-    /**
-     * Update the user and their plant assignments.
-     */
     public function update(Request $request, User $plant_user)
     {
+        // 1. Validation
         $validator = Validator::make($request->all(), [
-            'name'     => 'required|string|max:255',
-            'email'    => ['required', 'email', Rule::unique('users')->ignore($plant_user->id)],
-            'mobile'   => 'required|string|max:20',
-            'password' => 'nullable|string|min:6|confirmed',
-            'plants'   => 'required|array',
-            'plants.*' => 'exists:plants,id',
+            'name'            => 'required|string|max:255',
+            'email'           => ['required', 'email', Rule::unique('users')->ignore($plant_user->id)],
+            'mobile'          => 'required|string|max:20',
+            'password'        => 'nullable|string|min:6|confirmed',
+            'plants'          => 'required|array',
+            'plants.*'        => 'exists:plants,id',
+            'profile_picture' => 'nullable|image|mimes:jpg,jpeg,png|max:2048',
         ]);
-
 
         if ($validator->fails()) {
             return redirect()->back()
@@ -108,21 +116,39 @@ class PlantUserController extends Controller
                 ->with('modal_url', route('plant-user.edit', $plant_user->id));
         }
 
-
+        // 2. Apply Validated Fields
         $validated = $validator->validated();
 
-        $plant_user->update([
-            'name'     => $validated['name'],
-            'email'    => $validated['email'],
-            'mobile'   => $validated['mobile'],
-            'password' => $validated['password']
-                ? Hash::make($validated['password'])
-                : $plant_user->password,
-        ]);
+        $plant_user->name   = $validated['name'];
+        $plant_user->email  = $validated['email'];
+        $plant_user->mobile = $validated['mobile'];
 
-        $plant_user->plants()->sync($validated['plants']);
+        // 3. Update password if provided
+        if (!empty($validated['password'])) {
+            $plant_user->password = bcrypt($validated['password']);
+        }
 
-        return redirect()->route('plant-user.index')->with('success', 'User updated successfully.');
+        // 4. Handle Profile Picture
+        if ($request->hasFile('profile_picture')) {
+            // Delete old picture
+            if ($plant_user->profile_picture && Storage::disk('public')->exists($plant_user->profile_picture)) {
+                Storage::disk('public')->delete($plant_user->profile_picture);
+            }
+
+            // Store new file
+            $profilePath = $request->file('profile_picture')->store('profile_pictures', 'public');
+            $plant_user->profile_picture = $profilePath;
+        }
+
+        $plant_user->save();
+
+        // 5. Sync Plants (assuming many-to-many relation)
+        if ($request->has('plants')) {
+            $plant_user->plants()->sync($validated['plants']);
+        }
+
+        // 6. Redirect back with success
+        return redirect()->back()->with('success', 'Plant user updated successfully.');
     }
 
     /**

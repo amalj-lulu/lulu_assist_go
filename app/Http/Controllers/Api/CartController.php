@@ -49,4 +49,10 @@ class CartController extends Controller
     {
         return $this->service->abandonCart($cartId);
     }
+    public function details(Request $request)
+    {
+        $cart =  $this->service->getCartDetailsByMobile($request->customer_id);
+
+        return response()->json($cart, 200);
+    }
 }
