@@ -35,10 +35,6 @@ class ProductService
         ]);
     }
 
-    /**
-     * Upsert logic (optional helper)
-     * If product exists (by sap_product_id or ean), update or create
-     */
     public function upsertProduct(array $data): Product
     {
         $existing = $this->getProductBySapId($data['product_id'])

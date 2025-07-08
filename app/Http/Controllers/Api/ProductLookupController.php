@@ -28,8 +28,6 @@ class ProductLookupController extends Controller
         ]);
 
         $ean = $request->ean_number;
-
-        // Step 1: Always call SAP API to get latest stock details
         $sapProduct = $this->sapService->fetchProductByEan($ean);
 
         if (
@@ -38,19 +36,10 @@ class ProductLookupController extends Controller
         ) {
             return response()->json(['error' => 'Invalid or missing product data from SAP'], 422);
         }
-
-        // Step 2: Check if the product exists locally
         $localProduct = $this->productService->getProductByEan($ean);
-
-        // Step 3: If product doesn't exist, save to local DB
         if (!$localProduct) {
             $localProduct = $this->productService->saveProduct($sapProduct);
-            $source = 'sap_saved';
-        } else {
-            $source = 'sap_fetched';
         }
-
-        // Step 4: Return both local product info and latest stock info
         return response()->json([
             'product' => [
                 'product_id'        => $localProduct->id,
@@ -59,7 +48,7 @@ class ProductLookupController extends Controller
                 'ean_number'        => $localProduct->ean_number,
                 'material_category' => $localProduct->material_category,
             ],
-            'stock_info' => $sapProduct['stock'] ?? null,  // or whatever stock data SAP returns
+            'stock_info' => $sapProduct['stock'] ?? null, 
             'price' => $sapProduct['price'] ?? null, 
         ], 200);
     }

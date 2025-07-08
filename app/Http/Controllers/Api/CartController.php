@@ -23,13 +23,9 @@ class CartController extends Controller
     public function addItem(Request $request, $cartId)
     {
         try {
-            // Check if serial numbers already exist in the cart
             $this->service->checkSerialNumberExists($cartId, $request->serial_numbers);
-
-            // Proceed with adding the item to the cart
             return $this->service->addItemToCart($request, $cartId);
         } catch (\Exception $e) {
-            // Handle exceptions and return the appropriate error response
             return response()->json(['error' => $e->getMessage()], $e->getCode());
         }
     }

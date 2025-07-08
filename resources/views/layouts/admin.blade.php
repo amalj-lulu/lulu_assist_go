@@ -202,10 +202,7 @@
             @endif
         });
 
-        $('.custom-file-input').on('change', function() {
-            let fileName = $(this).val().split('\\').pop();
-            $(this).next('.custom-file-label').html(fileName);
-        });
+       
     </script>
 
 </body>

@@ -21,22 +21,36 @@ class AuthController extends Controller
             ->first();
 
         if (!$user || !Hash::check($request->password, $user->password)) {
-            return response()->json(['message' => 'Invalid credentials'], 401);
+            return response()->json([
+                'status' => false,
+                'message' => 'Invalid credentials',
+                'errors' => [
+                    'auth' => 'The mobile number or password is incorrect'
+                ]
+            ], 401);
         }
 
         $token = $user->createToken('mobile-token')->plainTextToken;
 
         return response()->json([
-            'access_token' => $token,
-            'token_type' => 'Bearer',
-            'user' => $user
-        ]);
+            'status' => true,
+            'message' => 'Login successful',
+            'data' => [
+                'access_token' => $token,
+                'token_type' => 'Bearer',
+                'user' => $user
+            ]
+        ], 200);
     }
 
     public function logout(Request $request)
     {
         $request->user()->currentAccessToken()->delete();
 
-        return response()->json(['message' => 'Logged out']);
+        return response()->json([
+            'status' => true,
+            'message' => 'Logged out successfully',
+            'data' => null
+        ], 200);
     }
 }

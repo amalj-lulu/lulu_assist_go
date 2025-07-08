@@ -47,12 +47,24 @@ class CartService
             DB::commit();
             $cart->load(['items.product', 'items.serials']);
             return response()->json([
+                'status' => true,
                 'message' => 'Cart updated',
-                'cart' => $this->formatCartResponse($cart),
+                'data' => [
+                    'cart' => $this->formatCartResponse($cart),
+                ],
+                'errors' => null
             ], 200);
         } catch (\Exception $e) {
             DB::rollBack();
-            return response()->json(['error' => 'Failed to update cart', 'details' => $e->getMessage()], 500);
+
+            return response()->json([
+                'status' => false,
+                'message' => 'Failed to update cart',
+                'data' => null,
+                'errors' => [
+                    'exception' => $e->getMessage()
+                ]
+            ], 500);
         }
     }
 
@@ -68,23 +80,51 @@ class CartService
 
         $cart = Cart::find($cartId);
         if (!$cart) {
-            return response()->json(['error' => 'Cart not found'], 404);
+            return response()->json([
+                'status' => false,
+                'message' => 'Cart not found',
+                'data' => null,
+                'errors' => [
+                    'cart' => 'Cart not found'
+                ]
+            ], 404);
         }
 
         if ($cart->status === 'abandoned') {
             return response()->json(['error' => 'Cannot add items to an abandoned cart'], 400);
+            return response()->json([
+                'status' => false,
+                'message' => 'Cannot add items to an abandoned cart',
+                'data' => null,
+                'errors' => [
+                    'cart' => 'Cannot add items to an abandoned cart'
+                ]
+            ], 400);
         }
         DB::beginTransaction();
         try {
             $this->addOrUpdateItem($cart, $request->all(), $request->created_by);
             DB::commit();
-            return response()->json(['message' => 'Item added', 'cart_id' => $cart->id], 200);
+            return response()->json([
+                'status' => true,
+                'message' => 'Item added',
+                'data' => [
+                    'cart_id' => $this->formatCartResponse($cart)
+                ],
+                'errors' => null
+            ], 200);
         } catch (\Exception $e) {
             DB::rollBack();
-            return response()->json(['error' => 'Failed to add item', 'details' => $e->getMessage()], 500);
+            return response()->json([
+                'status' => false,
+                'message' => 'Failed to add item',
+                'data' => null,
+                'errors' => [
+                    'exception' => $e->getMessage()
+                ]
+            ], 500);
         }
     }
-
     public function removeItemFromCart(Request $request, $cartId)
     {
         $request->validate([
@@ -97,10 +137,21 @@ class CartService
 
         $cart = Cart::find($cartId);
         if (!$cart) {
-            return response()->json(['error' => 'Cart not found'], 404);
+            return response()->json([
+                'status' => false,
+                'message' => 'Cart not found',
+                'data' => null,
+                'errors' => null,
+            ], 404);
         }
+
         if ($cart->status === 'abandoned') {
-            return response()->json(['error' => 'Cannot remove items from an abandoned cart'], 400);
+            return response()->json([
+                'status' => false,
+                'message' => 'Cannot remove items from an abandoned cart',
+                'data' => null,
+                'errors' => null,
+            ], 400);
         }
 
         DB::beginTransaction();
@@ -111,23 +162,50 @@ class CartService
                 ->first();
 
             if (!$cartItem) {
-                return response()->json(['error' => 'Item not found or already deleted'], 404);
+                return response()->json([
+                    'status' => false,
+                    'message' => 'Item not found or already deleted',
+                    'data' => null,
+                    'errors' => null,
+                ], 404);
             }
 
-            if ($request->quantity >= $cartItem->quantity) {
-                // soft-delete serials & item
-                CartItemSerial::where('cart_item_id', $cartItem->id)
-                    ->whereIn('serial_number', $request->serial_numbers)
-                    ->update(['is_deleted' => true]);
+            $serials = CartItemSerial::where('cart_item_id', $cartItem->id)
+                ->whereIn('serial_number', $request->serial_numbers)
+                ->where('is_deleted', false)
+                ->get();
+
+            if ($serials->count() !== count($request->serial_numbers)) {
+                return response()->json([
+                    'status' => false,
+                    'message' => 'Some serial numbers do not match or are already removed',
+                    'data' => null,
+                    'errors' => null,
+                ], 422);
+            }
+
+            if ($request->quantity > $cartItem->quantity) {
+                return response()->json([
+                    'status' => false,
+                    'message' => 'Quantity exceeds the current item quantity',
+                    'data' => null,
+                    'errors' => null,
+                ], 422);
+            }
+
+            // Perform removal
+            if ($request->quantity == $cartItem->quantity) {
                 $cartItem->update(['is_deleted' => true]);
                 $action = 'remove_item';
             } else {
                 $cartItem->decrement('quantity', $request->quantity);
-                CartItemSerial::where('cart_item_id', $cartItem->id)
-                    ->whereIn('serial_number', $request->serial_numbers)
-                    ->update(['is_deleted' => true]);
                 $action = 'reduce_quantity';
             }
+
+            // Soft delete the serials
+            CartItemSerial::where('cart_item_id', $cartItem->id)
+                ->whereIn('serial_number', $request->serial_numbers)
+                ->update(['is_deleted' => true]);
 
             CartLog::create([
                 'cart_id' => $cartId,
@@ -142,10 +220,24 @@ class CartService
             ]);
 
             DB::commit();
-            return response()->json(['message' => 'Item removed'], 200);
+            return response()->json([
+                'status' => true,
+                'message' => 'Item removed',
+                'data' => [
+                    'cart_id' => $this->formatCartResponse($cart)
+                ],
+                'errors' => null
+            ], 200);
         } catch (\Exception $e) {
             DB::rollBack();
-            return response()->json(['error' => 'Failed to remove item', 'details' => $e->getMessage()], 500);
+            return response()->json([
+                'status' => false,
+                'message' => 'Failed to remove item',
+                'data' => null,
+                'errors' => [
+                    'exception' => $e->getMessage()
+                ]
+            ], 500);
         }
     }
 
@@ -187,10 +279,27 @@ class CartService
             ->first();
 
         if (!$cart) {
-            return response()->json(['error' => 'Cart not found'], 404);
+            return [
+                'status' => false,
+                'message' => 'Cart not found',
+                'data' => [
+                    'cart_id' => null,
+                    'items' => [],
+                ],
+                'errors' => null
+            ];
         }
         if ($cart->status === 'abandoned') {
-            return response()->json(['error' => 'Cart has been abandoned'], 400);
+
+            return [
+                'status' => false,
+                'message' => 'Cart has been abandoned',
+                'data' => [
+                    'cart_id' => null,
+                    'items' => [],
+                ],
+                'errors' => null
+            ];
         }
 
         return $this->formatCartResponse($cart);
@@ -302,7 +411,11 @@ class CartService
     private function checkCustomerExists($customerId)
     {
         if (! Customer::where('id', $customerId)->exists()) {
-            return response()->json(['error' => 'Customer not found'], 404);
+            return response()->json([
+                'status' => false,
+                'message' => 'Customer not found',
+                'data' => null
+            ], 404);
         }
         return null; // Means customer exists
     }

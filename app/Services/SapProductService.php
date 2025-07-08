@@ -17,7 +17,7 @@ class SapProductService
 
         // Test response
         return [
-            'product_id' => '444',
+            'product_id' => '567',
             'product_name' => 'Samsung 15',
             'ean_number' => $ean,
             'material_category' => 'Electronics',

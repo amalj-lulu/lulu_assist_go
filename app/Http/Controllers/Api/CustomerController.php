@@ -16,11 +16,11 @@ class CustomerController extends Controller
             'name'   => 'required|string|max:255',
             'mobile' => 'required|string',
         ]);
-
         if ($validator->fails()) {
             return response()->json([
+                'status'  => false,
                 'message' => 'Validation failed.',
-                'errors'  => $validator->errors()
+                'errors'  => $validator->errors(),
             ], 422);
         }
 
@@ -41,9 +41,12 @@ class CustomerController extends Controller
         $cart = $cartService->getCartDetailsByMobile($customer->id);
 
         return response()->json([
+            'status'  => true,
             'message' => $message,
-            'customer' => $customer,
-            'cart' => $cart
+            'data'    => [
+                'customer' => $customer,
+                'cart'     => $cart
+            ],
         ], $statusCode);
     }
 }
