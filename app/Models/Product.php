@@ -12,6 +12,7 @@ class Product extends Model
         'product_name',
         'ean_number',
         'material_category',
+        'product_description'
     ];
     public function cartItems()
     {

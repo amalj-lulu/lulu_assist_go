@@ -2,8 +2,11 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Exceptions\JsonApiException;
 use App\Http\Controllers\Controller;
+use App\Models\Cart;
 use App\Services\CartService;
+use App\Services\OrderService;
 use Illuminate\Http\Request;
 
 class CartController extends Controller
@@ -23,8 +26,10 @@ class CartController extends Controller
     public function addItem(Request $request, $cartId)
     {
         try {
-            $this->service->checkSerialNumberExists($cartId, $request->serial_numbers);
+            $this->service->checkSerialNumber($cartId, $request->serial_numbers);
             return $this->service->addItemToCart($request, $cartId);
+        } catch (JsonApiException $e) {
+            return response()->json($e->response, $e->getCode());
         } catch (\Exception $e) {
             return response()->json(['error' => $e->getMessage()], $e->getCode());
         }
@@ -50,5 +55,11 @@ class CartController extends Controller
         $cart =  $this->service->getCartDetailsByMobile($request->customer_id);
 
         return response()->json($cart, 200);
+    }
+    public function checkout(Cart $cart, OrderService $orderService)
+    {
+        $result = $orderService->checkout($cart);
+
+        return response()->json($result, $result['status'] ? 200 : 400);
     }
 }

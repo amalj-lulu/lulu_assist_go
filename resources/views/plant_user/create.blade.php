@@ -1,23 +1,25 @@
-{{-- Modal Title Setter (used in JS to update modal header) --}}
-<span data-modal-title="Add New Plant User" style="display: none;"></span>
+{{-- Dynamic Modal Title --}}
+<span data-modal-title="{{ $isEdit ?? false ? 'Edit Plant User' : 'Add New Plant User' }}" style="display: none;"></span>
 
 <div class="modal-body p-0">
     <div class="card border-0 shadow-sm m-3">
         <div class="card-body">
-            {{-- Validation Errors --}}
-            @if ($errors->any())
-                <div class="alert alert-danger">
-                    <ul class="mb-0">
-                        @foreach ($errors->all() as $error)
-                            <li><i class="fas fa-exclamation-circle mr-1 text-danger"></i> {{ $error }}</li>
-                        @endforeach
-                    </ul>
-                </div>
-            @endif
+
+            {{-- Error Container for AJAX --}}
+            <div id="form-errors" class="alert alert-danger d-none">
+                <ul class="mb-0" id="form-error-list"></ul>
+            </div>
 
             {{-- Form --}}
-            <form method="POST" action="{{ route('plant-user.store') }}" id="plantUserForm" enctype="multipart/form-data">
+            <form method="POST"
+                  action="{{ $action ?? route('plant-user.store') }}"
+                  id="plantUserForm"
+                  enctype="multipart/form-data">
+
                 @csrf
+                @if(($method ?? 'POST') !== 'POST')
+                    @method($method)
+                @endif
 
                 <div class="row">
                     {{-- Name --}}
@@ -27,12 +29,9 @@
                             <div class="input-group-prepend">
                                 <span class="input-group-text"><i class="fas fa-user"></i></span>
                             </div>
-                            <input name="name" id="name" value="{{ old('name') }}"
-                                class="form-control @error('name') is-invalid @enderror" required>
+                            <input name="name" id="name" value="{{ old('name', $user->name ?? '') }}"
+                                   class="form-control">
                         </div>
-                        @error('name')
-                            <small class="text-danger">{{ $message }}</small>
-                        @enderror
                     </div>
 
                     {{-- Email --}}
@@ -42,12 +41,9 @@
                             <div class="input-group-prepend">
                                 <span class="input-group-text"><i class="fas fa-envelope"></i></span>
                             </div>
-                            <input type="email" name="email" id="email" value="{{ old('email') }}"
-                                class="form-control @error('email') is-invalid @enderror" required>
+                            <input type="email" name="email" id="email" value="{{ old('email', $user->email ?? '') }}"
+                                   class="form-control">
                         </div>
-                        @error('email')
-                            <small class="text-danger">{{ $message }}</small>
-                        @enderror
                     </div>
 
                     {{-- Password --}}
@@ -57,12 +53,9 @@
                             <div class="input-group-prepend">
                                 <span class="input-group-text"><i class="fas fa-lock"></i></span>
                             </div>
-                            <input type="password" name="password" id="password"
-                                class="form-control @error('password') is-invalid @enderror" required>
+                            <input type="password" name="password" id="password" class="form-control"
+                                   {{ $isEdit ?? false ? '' : 'required' }}>
                         </div>
-                        @error('password')
-                            <small class="text-danger">{{ $message }}</small>
-                        @enderror
                     </div>
 
                     {{-- Confirm Password --}}
@@ -73,7 +66,7 @@
                                 <span class="input-group-text"><i class="fas fa-check-circle"></i></span>
                             </div>
                             <input type="password" name="password_confirmation" id="password_confirmation"
-                                class="form-control" required>
+                                   class="form-control" {{ $isEdit ?? false ? '' : 'required' }}>
                         </div>
                     </div>
 
@@ -84,44 +77,36 @@
                             <div class="input-group-prepend">
                                 <span class="input-group-text"><i class="fas fa-phone"></i></span>
                             </div>
-                            <input name="mobile" id="mobile" value="{{ old('mobile') }}"
-                                class="form-control @error('mobile') is-invalid @enderror">
+                            <input name="mobile" id="mobile" value="{{ old('mobile', $user->mobile ?? '') }}"
+                                   class="form-control">
                         </div>
-                        @error('mobile')
-                            <small class="text-danger">{{ $message }}</small>
-                        @enderror
                     </div>
 
                     {{-- Plants --}}
                     <div class="col-md-6 mb-3">
                         <label for="plants">Assign Plants</label>
                         <select name="plants[]" id="plants"
-                            class="form-control select2 @error('plants') is-invalid @enderror" multiple
-                            data-placeholder="Select Plants" style="width: 100%;">
+                                class="form-control select2"
+                                multiple data-placeholder="Select Plants" style="width: 100%;">
                             @foreach ($plants as $plant)
                                 <option value="{{ $plant->id }}"
-                                    {{ in_array($plant->id, old('plants', [])) ? 'selected' : '' }}>
+                                    {{ in_array($plant->id, old('plants', $user->plants->pluck('id')->toArray() ?? [])) ? 'selected' : '' }}>
                                     {{ $plant->name }}
                                 </option>
                             @endforeach
                         </select>
-                        @error('plants')
-                            <small class="text-danger d-block">{{ $message }}</small>
-                        @enderror
                     </div>
+
+                    {{-- Profile Picture --}}
                     <div class="col-md-6 mb-3">
                         <label for="profile_picture">Profile Picture</label>
                         <div class="custom-file">
                             <input type="file"
-                                class="custom-file-input @error('profile_picture') is-invalid @enderror"
-                                id="profile_picture" name="profile_picture" accept="image/*">
+                                   class="custom-file-input"
+                                   id="profile_picture" name="profile_picture" accept="image/*">
                             <label class="custom-file-label" for="profile_picture">Choose file</label>
                         </div>
-                        @error('profile_picture')
-                            <small class="text-danger d-block">{{ $message }}</small>
-                        @enderror
                     </div>
-
                 </div>
             </form>
         </div>
@@ -131,7 +116,7 @@
 {{-- Modal Footer --}}
 <div class="modal-footer">
     <button type="submit" form="plantUserForm" class="btn btn-primary">
-        <i class="fas fa-save mr-1"></i> Create
+        <i class="fas fa-save mr-1"></i> {{ $isEdit ?? false ? 'Update' : 'Create' }}
     </button>
     <button type="button" class="btn btn-secondary" data-dismiss="modal">
         <i class="fas fa-times-circle mr-1"></i> Cancel

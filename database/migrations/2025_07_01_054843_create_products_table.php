@@ -17,6 +17,7 @@ return new class extends Migration
             $table->id();
             $table->string('sap_product_id')->unique(); 
             $table->string('product_name');
+            $table->string('product_description');
             $table->string('ean_number')->unique();
             $table->string('material_category')->nullable();
             $table->timestamps();

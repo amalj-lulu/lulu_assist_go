@@ -17,6 +17,7 @@ return new class extends Migration
             $table->id();
             $table->foreignId('cart_item_id')->constrained()->onDelete('cascade');
             $table->string('serial_number');
+             $table->string('created_by');
             $table->timestamps();
         });
     }

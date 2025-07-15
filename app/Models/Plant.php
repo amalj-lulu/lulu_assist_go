@@ -9,7 +9,7 @@ class Plant extends Model
 {
     use HasFactory;
 
-    protected $fillable = ['name', 'code'];
+    protected $fillable = ['name', 'code', 'is_warehouse'];
 
     public function users()
     {

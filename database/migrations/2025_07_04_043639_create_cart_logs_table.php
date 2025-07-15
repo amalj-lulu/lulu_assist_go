@@ -19,7 +19,7 @@ return new class extends Migration
             $table->foreignId('cart_item_id')->nullable()->constrained()->onDelete('cascade');
             $table->string('action');
             $table->json('details');
-            $table->unsignedBigInteger('performed_by');
+            $table->string('performed_by');
             $table->timestamps();
         });
     }

@@ -13,6 +13,7 @@ class CartItem extends Model
         'ean_number',
         'product_name',
         'quantity',
+        'delivery_type',
         'created_by',
         'is_deleted'
     ];

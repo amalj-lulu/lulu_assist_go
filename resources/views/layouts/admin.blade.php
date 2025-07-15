@@ -120,7 +120,7 @@
                     </button>
                 </div>
                 <div id="globalAjaxModalContent">
-                    <div class="modal-body text-center py-5">
+                    <div class="modal-body text-cente">
                         <i class="fas fa-spinner fa-spin fa-2x text-white"></i>
                     </div>
                 </div>

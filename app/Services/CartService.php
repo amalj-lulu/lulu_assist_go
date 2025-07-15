@@ -2,13 +2,17 @@
 
 namespace App\Services;
 
+use App\Exceptions\JsonApiException;
 use App\Models\Cart;
 use App\Models\CartItem;
 use App\Models\CartItemSerial;
 use App\Models\CartLog;
 use App\Models\Customer;
+use App\Models\Product;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Str;
 
 class CartService
 {
@@ -21,7 +25,6 @@ class CartService
             'items.*.quantity' => 'required|integer|min:1',
             'items.*.serial_numbers' => 'required|array|min:1',
             'items.*.serial_numbers.*' => 'required|string',
-            'created_by' => 'required|integer',
         ]);
         if ($error = $this->checkCustomerExists($request->customer_id)) {
             return $error;
@@ -33,15 +36,23 @@ class CartService
                 ->first();
             if (!$cart) {
                 $cart = Cart::create([
+                    'token' => Str::uuid()->toString(),
                     'customer_id' => $request->customer_id,
-                    'created_by' => $request->created_by,
+                    'created_by' => auth()->id(),
                     'status' => 'active',
                 ]);
             }
 
             foreach ($request->items as $item) {
-                $this->checkSerialNumberExists($cart->id, $item['serial_numbers']);
-                $this->addOrUpdateItem($cart, $item, $request->created_by);
+                $this->checkSerialNumber($cart->id, $item['serial_numbers']);
+                if (!$this->checkProductExists($item['product_id'])) {
+                    return response()->json([
+                        'status' => false,
+                        'message' => 'Product not found',
+                        'data' => null
+                    ], 404);
+                }
+                $this->addOrUpdateItem($cart, $item, auth()->id());
             }
 
             DB::commit();
@@ -54,6 +65,9 @@ class CartService
                 ],
                 'errors' => null
             ], 200);
+        } catch (JsonApiException $e) {
+            DB::rollBack();
+            return response()->json($e->response, $e->getCode());
         } catch (\Exception $e) {
             DB::rollBack();
 
@@ -70,13 +84,46 @@ class CartService
 
     public function addItemToCart(Request $request, $cartId)
     {
-        $request->validate([
-            'product_id' => 'required|integer',
-            'quantity' => 'required|integer|min:1',
-            'serial_numbers' => 'required|array|min:1',
-            'serial_numbers.*' => 'required|string',
-            'created_by' => 'required|integer',
+        $validator = Validator::make($request->all(), [
+            'product_id'     => 'nullable|integer',
+            'ean_number'     => 'nullable|string',
+            'quantity'       => 'required|integer|min:1',
+            'serial_numbers' => 'required',
+            'created_by'     => 'required',
         ]);
+
+        // Custom "either product_id or ean_number" rule
+        $validator->after(function ($validator) use ($request) {
+            if (!$request->filled('product_id') && !$request->filled('ean_number')) {
+                $validator->errors()->add('product', 'Either product_id or ean_number is required.');
+            }
+        });
+
+        // Return if validation fails
+        if ($validator->fails()) {
+            return response()->json([
+                'status' => false,
+                'message' => 'Validation error',
+                'data' => null,
+                'errors' => $validator->errors()
+            ], 422);
+        }
+        $productId = $request->input('product_id');
+        if (!$productId && $request->filled('ean_number')) {
+            $product = Product::where('ean_number', $request->input('ean_number'))->first();
+            if (!$product) {
+                return response()->json([
+                    'status' => false,
+                    'message' => 'Product not found with provided EAN number',
+                    'data' => null,
+                    'errors' => [
+                        'ean_number' => 'Product not found for the given EAN number'
+                    ]
+                ], 404);
+            }
+            $productId = $product->id;
+            $request->merge(['product_id' => $productId]);
+        }
 
         $cart = Cart::find($cartId);
         if (!$cart) {
@@ -91,7 +138,6 @@ class CartService
         }
 
         if ($cart->status === 'abandoned') {
-            return response()->json(['error' => 'Cannot add items to an abandoned cart'], 400);
             return response()->json([
                 'status' => false,
                 'message' => 'Cannot add items to an abandoned cart',
@@ -101,9 +147,13 @@ class CartService
                 ]
             ], 400);
         }
+
+        $createdBy = $request->input('created_by', auth()->id()); // Set default to 0 if not passed
+
         DB::beginTransaction();
         try {
-            $this->addOrUpdateItem($cart, $request->all(), $request->created_by);
+            $this->addOrUpdateItem($cart, $request->all(), $createdBy);
+
             DB::commit();
             return response()->json([
                 'status' => true,
@@ -125,16 +175,46 @@ class CartService
             ], 500);
         }
     }
+
     public function removeItemFromCart(Request $request, $cartId)
     {
-        $request->validate([
-            'product_id' => 'required|integer',
-            'quantity' => 'required|integer|min:1',
-            'serial_numbers' => 'required|array|min:1',
-            'serial_numbers.*' => 'required|string',
-            'created_by' => 'required|integer',
+        $validator = Validator::make($request->all(), [
+            'product_id'     => 'nullable|integer',
+            'ean_number'     => 'nullable|string',
+            'quantity'       => 'required|integer|min:1',
+            'serial_number'  => 'required|string',
+            'created_by'     => 'nullable',
         ]);
 
+        $validator->after(function ($validator) use ($request) {
+            if (!$request->filled('product_id') && !$request->filled('ean_number')) {
+                $validator->errors()->add('product', 'Either product_id or ean_number is required.');
+            }
+        });
+
+        if ($validator->fails()) {
+            return response()->json([
+                'status' => false,
+                'message' => 'Validation failed',
+                'data' => null,
+                'errors' => $validator->errors()
+            ], 422);
+        }
+
+        // Resolve product_id from ean_number if needed
+        $productId = $request->input('product_id');
+        if (!$productId && $request->filled('ean_number')) {
+            $product = Product::where('ean_number', $request->ean_number)->first();
+            if (!$product) {
+                return response()->json([
+                    'status' => false,
+                    'message' => 'Product not found for the given EAN number',
+                    'data' => null,
+                    'errors' => ['ean_number' => 'No product found']
+                ], 404);
+            }
+            $productId = $product->id;
+        }
         $cart = Cart::find($cartId);
         if (!$cart) {
             return response()->json([
@@ -157,7 +237,7 @@ class CartService
         DB::beginTransaction();
         try {
             $cartItem = CartItem::where('cart_id', $cartId)
-                ->where('product_id', $request->product_id)
+                ->where('product_id', $productId)
                 ->where('is_deleted', false)
                 ->first();
 
@@ -170,15 +250,15 @@ class CartService
                 ], 404);
             }
 
-            $serials = CartItemSerial::where('cart_item_id', $cartItem->id)
-                ->whereIn('serial_number', $request->serial_numbers)
+            $serial = CartItemSerial::where('cart_item_id', $cartItem->id)
+                ->where('serial_number', $request->serial_number)
                 ->where('is_deleted', false)
-                ->get();
+                ->first();
 
-            if ($serials->count() !== count($request->serial_numbers)) {
+            if (!$serial) {
                 return response()->json([
                     'status' => false,
-                    'message' => 'Some serial numbers do not match or are already removed',
+                    'message' => 'Serial number does not match or is already removed',
                     'data' => null,
                     'errors' => null,
                 ], 422);
@@ -202,11 +282,10 @@ class CartService
                 $action = 'reduce_quantity';
             }
 
-            // Soft delete the serials
-            CartItemSerial::where('cart_item_id', $cartItem->id)
-                ->whereIn('serial_number', $request->serial_numbers)
-                ->update(['is_deleted' => true]);
+            // Soft delete the serial number
+            $serial->update(['is_deleted' => true]);
 
+            // Log the action
             CartLog::create([
                 'cart_id' => $cartId,
                 'cart_item_id' => $cartItem->id,
@@ -214,9 +293,9 @@ class CartService
                 'details' => json_encode([
                     'product_id' => $cartItem->product_id,
                     'quantity' => $request->quantity,
-                    'serial_numbers' => $request->serial_numbers,
+                    'serial_number' => $request->serial_number,
                 ]),
-                'performed_by' => $request->created_by,
+                'performed_by' => ($request->created_by) ? $request->created_by : auth()->id(),
             ]);
 
             DB::commit();
@@ -240,6 +319,7 @@ class CartService
             ], 500);
         }
     }
+
 
     public function getCartDetails($cartId)
     {
@@ -352,31 +432,39 @@ class CartService
             return response()->json(['error' => 'Failed to abandon cart', 'details' => $e->getMessage()], 500);
         }
     }
-    public function checkSerialNumberExists($cartId, $serialNumbers)
+    public function checkSerialNumber($cartId, $serialNumbers)
     {
         // Check if the serial numbers already exist in the cart via the CartItemSerial and CartItem models
         $existingSerials = CartItemSerial::whereIn('serial_number', $serialNumbers)
+            ->where('is_deleted', false)
             ->whereHas('cartItem', function ($query) use ($cartId) {
-                $query->where('cart_id', $cartId);  // Check cart_id from the CartItem model
+                $query->where('cart_id', $cartId)
+                    ->where('is_deleted', false);
             })
             ->exists();
-
         if ($existingSerials) {
-            // Instead of returning a response, throw a custom exception
-            throw new \Exception('Some serial numbers already exist in this cart', 400);
+            throw new JsonApiException([
+                'status' => false,
+                'message' => 'Some serial numbers already exist in this cart',
+                'data' => null,
+                'errors' => [
+                    'serial_numbers' => ['Duplicate serial numbers found in cart']
+                ]
+            ], 400);
         }
-
-        // No conflict, return null indicating everything is fine
         return null;
     }
+    public function checkProductExists(int $productId): bool
+    {
+        return Product::find($productId) !== null;
+    }
 
-    private function addOrUpdateItem(Cart $cart, array $item, int $createdBy): void
+    private function addOrUpdateItem(Cart $cart, array $item, $createdBy): void
     {
         $cartItem = CartItem::where('cart_id', $cart->id)
             ->where('product_id', $item['product_id'])
             ->where('is_deleted', false)
             ->first();
-
         if ($cartItem) {
             $cartItem->increment('quantity', $item['quantity']);
         } else {
@@ -384,6 +472,7 @@ class CartService
                 'cart_id' => $cart->id,
                 'product_id' => $item['product_id'],
                 'quantity' => $item['quantity'],
+                'delivery_type' => $item['delivery_type'] ?? 0,
                 'created_by' => $createdBy,
                 'customer_id' => $cart->customer_id,
             ]);
@@ -393,6 +482,7 @@ class CartService
             CartItemSerial::create([
                 'cart_item_id' => $cartItem->id,
                 'serial_number' => $serial,
+                'created_by' => $createdBy,
             ]);
         }
 
@@ -428,6 +518,7 @@ class CartService
 
         return [
             'cart_id' => $cart->id,
+            'token' => $cart->token,
             'customer_id' => $cart->customer_id,
             'status' => $cart->status,
             'items' => $cart->items->map(function ($item) {

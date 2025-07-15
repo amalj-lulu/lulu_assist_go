@@ -16,7 +16,8 @@ return new class extends Migration
         Schema::create('carts', function (Blueprint $table) {
             $table->id();
             $table->uuid('customer_id');
-            $table->unsignedBigInteger('created_by');
+            $table->string('token')->unique()->nullable();
+            $table->string('created_by');
             $table->enum('status', ['active', 'abandoned', 'checked_out', 'cancelled'])->default('active');
             $table->timestamps();
         });

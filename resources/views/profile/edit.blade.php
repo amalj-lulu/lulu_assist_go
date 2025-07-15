@@ -1,4 +1,4 @@
-@extends('layouts.admin')
+@extends('layouts.coreui.app')
 
 @section('title', 'Edit Profile')
 @section('page-title', 'Edit Profile')

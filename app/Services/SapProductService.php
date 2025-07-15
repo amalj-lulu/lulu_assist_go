@@ -4,6 +4,7 @@
 namespace App\Services;
 
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Str;
 
 class SapProductService
 {
@@ -17,10 +18,11 @@ class SapProductService
 
         // Test response
         return [
-            'product_id' => '567',
-            'product_name' => 'Samsung 15',
+            'product_id' => '56337_'. Str::uuid()->toString(),
+            'product_name' => 'Samsung s23',
+            'product_description' => "Samsung s23",
             'ean_number' => $ean,
-            'material_category' => 'Electronics',
+            'material_category' => 'Mobile',
             'stock' => 100,
             'price' => 200
         ];

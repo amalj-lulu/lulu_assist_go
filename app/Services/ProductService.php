@@ -30,6 +30,7 @@ class ProductService
         return Product::create([
             'sap_product_id'     => $data['product_id'],
             'product_name'       => $data['product_name'],
+            'product_description' => $data['product_description'],
             'ean_number'         => $data['ean_number'],
             'material_category'  => $data['material_category'] ?? null,
         ]);
@@ -43,6 +44,7 @@ class ProductService
         if ($existing) {
             $existing->update([
                 'product_name'       => $data['product_name'] ?? $existing->product_name,
+                'product_description' => $data['product_description']?? $existing->product_description,
                 'material_category'  => $data['material_category'] ?? $existing->material_category,
             ]);
             return $existing;
