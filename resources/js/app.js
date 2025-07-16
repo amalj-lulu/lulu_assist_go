@@ -11,9 +11,9 @@ import select2 from 'select2/dist/js/select2.full';
 select2($);
 
 // ✅ 4. Import DataTables
-import DataTable from 'datatables.net-bs5/js/dataTables.bootstrap5';
-import 'datatables.net-bs5/css/dataTables.bootstrap5.min.css';
-window.DataTable = DataTable;
+// import DataTable from 'datatables.net-bs5/js/dataTables.bootstrap5';
+// import 'datatables.net-bs5/css/dataTables.bootstrap5.min.css';
+// window.DataTable = DataTable;
 
 // ✅ 5. Import CSS
 import 'bootstrap/dist/css/bootstrap.min.css';
