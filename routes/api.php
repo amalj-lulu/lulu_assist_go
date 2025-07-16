@@ -6,6 +6,7 @@ use App\Http\Controllers\Api\CustomerController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\CartController;
 use App\Http\Controllers\Api\ProductLookupController;
+use Illuminate\Support\Facades\Artisan;
 
 /*
 |--------------------------------------------------------------------------
@@ -43,6 +44,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/details', [CartController::class, 'details']);
         Route::post('/{cart}/checkout', [CartController::class, 'checkout']);
     });
+
 });
 
 Route::post('/pos/mobile-app-order-request', [\App\Http\Controllers\Api\Pos\PosCustomerCartController::class, 'getCartDetails']);
@@ -50,4 +52,3 @@ Route::post('/pos/add-cart-item', [\App\Http\Controllers\Api\Pos\PosCustomerCart
 Route::post('/pos/remove-cart-item', [\App\Http\Controllers\Api\Pos\PosCustomerCartController::class, 'removeItem']);
 Route::post('/pos/check-serial-number', [\App\Http\Controllers\Api\Pos\PosCustomerCartController::class, 'checkSerialNumber']);
 Route::post('/pos/fetch', [\App\Http\Controllers\Api\Pos\PosCustomerCartController::class, 'fetchFromPipo']);
-

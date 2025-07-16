@@ -60,7 +60,7 @@ class PosCustomerCartController extends Controller
                     'created_by' => $request->workstation ?? 0
                 ]);
             }
-            $this->cartService->checkSerialNumber($cart->id, $request->serial_numbers);
+            $this->cartService->checkSerialNumber($cart->id, null, $request->serial_numbers,$request->ean_number);
             return $this->cartService->addItemToCart($request, $cart->id);
         } catch (JsonApiException $e) {
             return response()->json($e->response, $e->getCode());
@@ -125,6 +125,7 @@ class PosCustomerCartController extends Controller
                 'token' => 'required|uuid',
                 'mobile_number' => 'required|string|min:10|max:15'
             ]);
+
             $cart = Cart::where('token', $request->token)
                 ->where('status', 'active')
                 ->first();
@@ -139,6 +140,7 @@ class PosCustomerCartController extends Controller
             }
 
             $customer = Customer::where('mobile', $request->mobile_number)->first();
+
 
             if (!$customer) {
                 return response()->json([
@@ -162,7 +164,8 @@ class PosCustomerCartController extends Controller
                     'serial_numbers' => [(string) $request->serial_numbers]
                 ]);
             }
-            $this->cartService->checkSerialNumber($cart->id, $request->serial_numbers);
+
+            $this->cartService->checkSerialNumber($cart->id, null, $request->serial_numbers, $request->ean_number);
         } catch (JsonApiException $e) {
             return response()->json($e->response, $e->getCode());
         } catch (\Exception $e) {
@@ -214,6 +217,7 @@ class PosCustomerCartController extends Controller
                         'product_description' => $localProduct->product_description,
                         'ean_number'          => $localProduct->ean_number,
                         'material_category'   => $localProduct->material_category,
+                        "serial_numbers"     => ["S22-ABCD-001", "S22-ABCD-002"]
                     ],
                     'stock_info' => $sapProduct['stock'] ?? null,
                     'price'      => $sapProduct['price'] ?? null,

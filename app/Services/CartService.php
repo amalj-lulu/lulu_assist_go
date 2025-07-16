@@ -16,6 +16,12 @@ use Illuminate\Support\Str;
 
 class CartService
 {
+    protected SapProductService $sapService;
+
+    public function __construct(SapProductService $sapService)
+    {
+        $this->sapService = $sapService;
+    }
     public function storeCartWithItems(Request $request)
     {
         $request->validate([
@@ -44,7 +50,7 @@ class CartService
             }
 
             foreach ($request->items as $item) {
-                $this->checkSerialNumber($cart->id, $item['serial_numbers']);
+                $this->checkSerialNumber($cart->id,$item['product_id'], $item['serial_numbers']);
                 if (!$this->checkProductExists($item['product_id'])) {
                     return response()->json([
                         'status' => false,
@@ -432,8 +438,34 @@ class CartService
             return response()->json(['error' => 'Failed to abandon cart', 'details' => $e->getMessage()], 500);
         }
     }
-    public function checkSerialNumber($cartId, $serialNumbers)
+    public function validateSerialsAgainstSAP($eanNumber, array $selectedSerials)
     {
+      
+
+        if (!$eanNumber) {
+            throw new JsonApiException([
+                'status' => false,
+                'message' => 'EAN not found for the selected product',
+                'data' => null,
+                'errors' => [
+                    'product' => ['Product EAN is missing']
+                ]
+            ], 422);
+        }
+
+        $this->sapService->validateSelectedSerialsWithSAP($eanNumber, $selectedSerials);
+       
+        return null; // All good
+    }
+
+    public function checkSerialNumber($cartId, $productId = null, $serialNumbers=[], $eanNumber = null)
+    {
+        if(!$eanNumber) {
+            $product = Product::findOrFail($productId);
+            $eanNumber  = $product->ean_number;
+        }
+        
+        $this->validateSerialsAgainstSAP($eanNumber, $serialNumbers);
         // Check if the serial numbers already exist in the cart via the CartItemSerial and CartItem models
         $existingSerials = CartItemSerial::whereIn('serial_number', $serialNumbers)
             ->where('is_deleted', false)
