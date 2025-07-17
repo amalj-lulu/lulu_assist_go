@@ -53,4 +53,4 @@ Route::post('/pos/remove-cart-item', [\App\Http\Controllers\Api\Pos\PosCustomerC
 Route::post('/pos/check-serial-number', [\App\Http\Controllers\Api\Pos\PosCustomerCartController::class, 'checkSerialNumber']);
 Route::post('/pos/fetch', [\App\Http\Controllers\Api\Pos\PosCustomerCartController::class, 'fetchFromPipo']);
 Route::post('/pos/customer/register', [\App\Http\Controllers\Api\Pos\PosCustomerCartController::class, 'customerRegistration']);
-
+Route::post('/pos/checkout', [\App\Http\Controllers\Api\Pos\PosCustomerCartController::class, 'checkout']);

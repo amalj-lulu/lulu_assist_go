@@ -9,6 +9,7 @@ use App\Models\Customer;
 use App\Models\CustomerAttempt;
 use App\Models\Product;
 use App\Services\CartService;
+use App\Services\OrderService;
 use App\Services\Pos\PosCustomerCartService;
 use App\Services\ProductService;
 use App\Services\SapProductService;
@@ -219,7 +220,7 @@ class PosCustomerCartController extends Controller
             return response()->json(['error' => $e->getMessage()], $e->getCode());
         }
     }
-    public function fetchFromPipo(Request $request, CartService $cartService)
+    public function fetchFromPipo(Request $request)
     {
         try {
             // Step 1: Validate EAN only here
@@ -247,7 +248,6 @@ class PosCustomerCartController extends Controller
             if (!$localProduct) {
                 $localProduct = $this->productService->saveProduct($sapProduct);
             }
-
             // Step 5: Success response
             return response()->json([
                 'status' => true,
@@ -260,7 +260,7 @@ class PosCustomerCartController extends Controller
                         'product_description' => $localProduct->product_description,
                         'ean_number'          => $localProduct->ean_number,
                         'material_category'   => $localProduct->material_category,
-                        "serial_numbers"     => ["S22-ABCD-001", "S22-ABCD-002"]
+                        "serial_numbers"     => $sapProduct['serial_numbers']
                     ],
                     'stock_info' => $sapProduct['stock'] ?? null,
                     'price'      => $sapProduct['price'] ?? null,
@@ -302,7 +302,7 @@ class PosCustomerCartController extends Controller
 
         $validated = $validator->validated();
 
-        $performedBy = $validated['workstation'] ;
+        $performedBy = $validated['workstation'];
 
 
         // Check if customer exists
@@ -336,5 +336,32 @@ class PosCustomerCartController extends Controller
                 'cart'     => $cart
             ],
         ], $statusCode);
+    }
+    public function checkout(Request $request, OrderService $orderService)
+    {
+        $request->validate([
+            'mobile_number' => 'required|string|min:10|max:15'
+        ]);
+        $result = $this->posCartService->validateCustomer($request->only('mobile_number'));
+        $customer = $result['customer'];
+        $cart = Cart::where('customer_id', $customer->id)
+            ->where('status', 'active')
+            ->latest()
+            ->first();
+
+        if (!$cart) {
+            return response()->json([
+                'status' => false,
+                'message' => 'No active cart found for this customer.',
+                'data' => null,
+                'errors' => [
+                    'cart' => ['Active cart not found.']
+                ]
+            ], 404);
+        }
+
+        $result = $orderService->checkout($request, $cart);
+
+        return response()->json($result, $result['status'] ? 200 : 400);
     }
 }

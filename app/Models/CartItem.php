@@ -20,7 +20,7 @@ class CartItem extends Model
 
     public function serials(): HasMany
     {
-        return $this->hasMany(CartItemSerial::class);
+        return $this->hasMany(CartItemSerial::class)->where('is_deleted', false);
     }
     public function product()
     {

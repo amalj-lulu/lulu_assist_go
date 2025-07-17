@@ -21,7 +21,6 @@ return new class extends Migration
             $table->string('action');         // e.g., 'Creating order', 'Adding serial', etc.
             $table->text('details')->nullable(); // JSON or message
             $table->string('status');         // 'success', 'failed', 'info'
-            $table->string('performed_by');
             $table->timestamps();
         });
     }

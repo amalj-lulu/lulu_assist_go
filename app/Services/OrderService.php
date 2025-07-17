@@ -4,26 +4,14 @@ namespace App\Services;
 
 use App\Models\{Cart, CartLog, Product, Order, OrderItem, OrderItemSerial, OrderLog};
 use Illuminate\Support\Facades\DB;
+use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 
 class OrderService
 {
-    public function checkout(Cart $cart): array
+    public function checkout(Request $request, Cart $cart): array
     {
         $cart->load('items.serials');
-
-        if ($cart->status !== 'active') {
-            $this->log($cart, null, 'Checkout failed', "Cart is already {$cart->status}", 'failed');
-            return [
-                'status' => false,
-                'message' => "Cart is already {$cart->status}",
-                'data' => null,
-                'errors' => [
-                    'cart' => ['No items found in cart']
-                ],
-            ];
-        }
-
 
         $this->log($cart, null, 'Start checkout', 'Cart loaded');
 
@@ -38,10 +26,9 @@ class OrderService
                 ],
             ];
         }
-
         DB::beginTransaction();
-
         try {
+            $priceMapper = $this->priceMapper($request);
             $order = Order::create([
                 'order_number' => Str::uuid(),
                 'customer_id' => $cart->customer_id,
@@ -89,7 +76,7 @@ class OrderService
                 $itemTotal = 0;
 
                 foreach ($item->serials as $serial) {
-                    $serialPrice = $serial->price ?? $product->price;
+                    $serialPrice = $priceMapper[$product->ean_number] ?? $product->price;
 
                     OrderItemSerial::create([
                         'order_item_id' => $orderItem->id,
@@ -116,7 +103,6 @@ class OrderService
             $order->update(['total_amount' => $totalAmount]);
 
             $cart->update(['status' => 'checked_out']);
-
             CartLog::create([
                 'cart_id' => $cart->id,
                 'action' => 'checked_out',
@@ -124,7 +110,7 @@ class OrderService
                     'order_number' => $order->order_number,
                     'total_amount' => $totalAmount
                 ]),
-                'performed_by' => auth()->id() ?? null,
+                'performed_by' => ($request->workstation) ?? auth()->id() ?? null,
             ]);
 
 
@@ -166,6 +152,25 @@ class OrderService
             'action' => $action,
             'details' => is_array($details) ? json_encode($details) : $details,
             'status' => $status,
+            'action' => $action,
         ]);
+    }
+    protected function priceMapper(Request $request)
+    {
+        $items = $request->input('items', []);
+
+        // Create single-dimensional array: ean_number => price
+        $eanPriceMap = [];
+
+        foreach ($items as $item) {
+            $ean = $item['ean_number'] ?? null;
+            $price = $item['price'] ?? null;
+
+            if ($ean !== null && $price !== null) {
+                $eanPriceMap[$ean] = $price;
+            }
+        }
+
+        return $eanPriceMap;
     }
 }
