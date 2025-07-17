@@ -311,7 +311,7 @@ class CartService
                 'status' => true,
                 'message' => 'Item removed',
                 'data' => [
-                    'cart_id' => $this->formatCartResponse($cart)
+                    'cart' => $this->formatCartResponse($cart)
                 ],
                 'errors' => null
             ], 200);
