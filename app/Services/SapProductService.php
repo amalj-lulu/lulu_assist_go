@@ -24,7 +24,7 @@ class SapProductService
             'product_description' => "Samsung s23",
             'ean_number' => $ean,
             'material_category' => 'Mobile',
-            'serial_numbers'    => ["S22-ABCD-001", "S22-ABCD-002","S231234531","IPAD-1234-XYZ","s2312334448"],
+            'serial_numbers'    => ["S22-ABCD-001", "S22-ABCD-002","S22-ABCD-003","S22-ABCD-004","IPAD-1235-XYZ","S231234531","IPAD-1234-XYZ","s2312334448"],
             'stock' => 100,
             'price' => 200
         ];

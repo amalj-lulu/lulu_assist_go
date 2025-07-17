@@ -56,19 +56,7 @@ class PosCustomerCartController extends Controller
                     'customer_id' => $customer->id ?? 0
                 ]);
             }
-            // if (!$request->has('created_by') || empty($request->created_by)) {
-            //     $request->merge([
-            //         'created_by' => $request->workstation ?? 0
-            //     ]);
-            // }
-            // $productId = Product::where('ean_number', $request->ean_number)->value('id');
-            // if (!$request->has('product_id') || empty($request->product_id)) {
-            //     $request->merge([
-            //         'product_id' => $productId ?? 0
-            //     ]);
-            // }
-
-            $request = $this->transformPosOrder($request);
+            $request = $this->posCartService->transformPosOrder($request);
             return $this->cartService->storeCartWithItems($request);
         } catch (JsonApiException $e) {
             return response()->json($e->response, $e->getCode());
@@ -82,43 +70,6 @@ class PosCustomerCartController extends Controller
         } catch (\Exception $e) {
             return response()->json(['error' => $e->getMessage()], $e->getCode());
         }
-    }
-    public function transformPosOrder(Request $request): Request
-    {
-        $customerId = $request->input('customer_id');
-        $items = $request->input('items', []);
-
-
-        $transformedItems = [];
-
-        foreach ($items as $item) {
-            $ean = $item['ean_number'] ?? null;
-
-            // Get product ID from DB using EAN
-            $productId = Product::where('ean_number', $ean)->value('id');
-
-            if (!$productId) {
-                continue; // Or throw exception
-            }
-
-            $transformedItems[] = [
-                'product_id' => $productId,
-                'quantity' => $item['quantity'] ?? 1,
-                'delivery_type' => $item['delivery_type'] ?? 0,
-                'serial_numbers' => $item['serial_numbers'] ?? [],
-                'created_by' =>  $request->input('workstation') ?? 'system',
-            ];
-        }
-
-        // Prepare the transformed request payload
-        $transformedData = [
-            'customer_id' => $customerId,
-            'workstation' => $request->input('workstation'),
-            'items' => $transformedItems,
-        ];
-
-        // Return a new request instance with transformed structure
-        return new Request($transformedData);
     }
 
     public function removeItem(Request $request)

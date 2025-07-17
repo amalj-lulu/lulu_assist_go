@@ -56,10 +56,4 @@ class CartController extends Controller
 
         return response()->json($cart, 200);
     }
-    public function checkout(Cart $cart, OrderService $orderService)
-    {
-        $result = $orderService->checkout($cart);
-
-        return response()->json($result, $result['status'] ? 200 : 400);
-    }
 }

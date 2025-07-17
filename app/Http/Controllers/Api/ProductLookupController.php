@@ -58,7 +58,7 @@ class ProductLookupController extends Controller
                     'product_description' => $localProduct->product_description,
                     'ean_number'          => $localProduct->ean_number,
                     'material_category'   => $localProduct->material_category,
-                    "serial_numbers"      => ["S22-ABCD-001","S22-ABCD-002"]
+                    "serial_numbers"     => $sapProduct['serial_numbers']
                 ],
                 'stock_info' => $sapProduct['stock'] ?? null,
                 'price'      => $sapProduct['price'] ?? null,

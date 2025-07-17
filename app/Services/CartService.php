@@ -50,7 +50,7 @@ class CartService
             }
 
             foreach ($request->items as $item) {
-                $this->checkSerialNumber($cart->id,$item['product_id'], $item['serial_numbers']);
+                $this->checkSerialNumber($cart->id, $item['product_id'], $item['serial_numbers']);
                 if (!$this->checkProductExists($item['product_id'])) {
                     return response()->json([
                         'status' => false,
@@ -58,7 +58,7 @@ class CartService
                         'data' => null
                     ], 404);
                 }
-                $this->addOrUpdateItem($cart, $item,$item['created_by'] ?? auth()->id());
+                $this->addOrUpdateItem($cart, $item, $item['created_by'] ?? auth()->id());
             }
 
             DB::commit();
@@ -184,6 +184,8 @@ class CartService
 
     public function removeItemFromCart(Request $request, $cartId)
     {
+        $request->merge(['quantity' => 1]); // Quantity is always 1
+
         $validator = Validator::make($request->all(), [
             'product_id'     => 'nullable|integer',
             'ean_number'     => 'nullable|string',
@@ -440,7 +442,7 @@ class CartService
     }
     public function validateSerialsAgainstSAP($eanNumber, array $selectedSerials)
     {
-      
+
 
         if (!$eanNumber) {
             throw new JsonApiException([
@@ -454,17 +456,17 @@ class CartService
         }
 
         $this->sapService->validateSelectedSerialsWithSAP($eanNumber, $selectedSerials);
-       
+
         return null; // All good
     }
 
-    public function checkSerialNumber($cartId, $productId = null, $serialNumbers=[], $eanNumber = null)
+    public function checkSerialNumber($cartId, $productId = null, $serialNumbers = [], $eanNumber = null)
     {
-        if(!$eanNumber) {
+        if (!$eanNumber) {
             $product = Product::findOrFail($productId);
             $eanNumber  = $product->ean_number;
         }
-        
+
         $this->validateSerialsAgainstSAP($eanNumber, $serialNumbers);
         // Check if the serial numbers already exist in the cart via the CartItemSerial and CartItem models
         $existingSerials = CartItemSerial::whereIn('serial_number', $serialNumbers)
@@ -548,21 +550,38 @@ class CartService
             'items.serials' => fn($q) => $q->where('is_deleted', false),
         ]);
 
-        return [
-            'cart_id' => $cart->id,
-            'token' => $cart->token,
-            'customer_id' => $cart->customer_id,
-            'status' => $cart->status,
-            'items' => $cart->items->map(function ($item) {
-                return [
-                    'product_id' => $item->product_id,
-                    'product_name' => $item->product->product_name,
-                    'quantity' => $item->quantity,
-                    'ean_number' => $item->product->ean_number,
-                    'created_by' => $item->created_by,
-                    'serial_numbers' => $item->serials->pluck('serial_number')->values(),
+        $formattedItems = [];
+
+        foreach ($cart->items as $item) {
+            foreach ($item->serials as $serial) {
+                $formattedItems[] = [
+                    'product_id'     => $item->product_id,
+                    'product_name'   => $item->product->product_name,
+                    'quantity'       => 1, // each serial = one unit
+                    'ean_number'     => $item->product->ean_number,
+                    'created_by'     => $item->created_by,
+                    'serial_number'  => $serial->serial_number,
                 ];
-            })->values(),
+            }
+
+            // If no serials, still include one row with quantity
+            if ($item->serials->isEmpty()) {
+                $formattedItems[] = [
+                    'product_id'     => $item->product_id,
+                    'product_name'   => $item->product->product_name,
+                    'quantity'       => $item->quantity,
+                    'ean_number'     => $item->product->ean_number,
+                    'created_by'     => $item->created_by,
+                    'serial_number'  => null,
+                ];
+            }
+        }
+
+        return [
+            'cart_id'     => $cart->id,
+            'customer_id' => $cart->customer_id,
+            'status'      => $cart->status,
+            'items'       => collect($formattedItems)->values(),
         ];
     }
 }

@@ -4,6 +4,7 @@ namespace App\Services\Pos;
 
 use App\Models\Customer;
 use App\Models\Cart;
+use App\Models\Product;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\ValidationException;
@@ -126,5 +127,42 @@ class PosCustomerCartService
         return [
             'customer' => $customer,
         ];
+    }
+    public function transformPosOrder(Request $request): Request
+    {
+        $customerId = $request->input('customer_id');
+        $items = $request->input('items', []);
+
+
+        $transformedItems = [];
+
+        foreach ($items as $item) {
+            $ean = $item['ean_number'] ?? null;
+
+            // Get product ID from DB using EAN
+            $productId = Product::where('ean_number', $ean)->value('id');
+
+            if (!$productId) {
+                continue; // Or throw exception
+            }
+
+            $transformedItems[] = [
+                'product_id' => $productId,
+                'quantity' => $item['quantity'] ?? 1,
+                'delivery_type' => $item['delivery_type'] ?? 0,
+                'serial_numbers' => $item['serial_numbers'] ?? [],
+                'created_by' =>  $request->input('workstation') ?? 'system',
+            ];
+        }
+
+        // Prepare the transformed request payload
+        $transformedData = [
+            'customer_id' => $customerId,
+            'workstation' => $request->input('workstation'),
+            'items' => $transformedItems,
+        ];
+
+        // Return a new request instance with transformed structure
+        return new Request($transformedData);
     }
 }
