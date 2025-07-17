@@ -63,7 +63,7 @@ class CustomerController extends Controller
         ], $statusCode);
     }
 
-    public function getActiveCustomers(Request $request)
+    public function getActiveCustomers(Request $request, CartService $cartService)
     {
         try {
             $performedBy = auth()->id();
@@ -77,6 +77,7 @@ class CustomerController extends Controller
                 ], 401);
             }
 
+            // Get customers attempted by this user
             $customers = Customer::whereIn('id', function ($query) use ($performedBy) {
                 $query->select('customer_id')
                     ->from('customer_attempts')
@@ -84,10 +85,17 @@ class CustomerController extends Controller
             })
                 ->get();
 
+            // Append cart to each customer using your service method
+            $customersWithCart = $customers->map(function ($customer) use ($cartService) {
+                $customerData = $customer->toArray();
+                $customerData['cart'] = $cartService->getCartDetailsByMobile($customer->id);
+                return $customerData;
+            });
+
             return response()->json([
                 'status' => true,
                 'message' => 'Active customers fetched successfully',
-                'data' => $customers,
+                'data' => $customersWithCart,
                 'errors' => null,
             ], 200);
         } catch (\Exception $e) {

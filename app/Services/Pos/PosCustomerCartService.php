@@ -106,25 +106,14 @@ class PosCustomerCartService
             }
         })->first();
     }
-    public function validateCartAndCustomer(array $data): array
+    public function validateCustomer(array $data): array
     {
         $validator = Validator::make($data, [
-            'token'         => 'required|uuid',
             'mobile_number' => 'required|string|min:10|max:15',
         ]);
 
         if ($validator->fails()) {
             throw ValidationException::withMessages($validator->errors()->toArray());
-        }
-
-        $cart = Cart::where('token', $data['token'])
-            ->where('status', 'active')
-            ->first();
-
-        if (!$cart) {
-            throw ValidationException::withMessages([
-                'token' => ['Invalid or inactive cart'],
-            ]);
         }
 
         $customer = Customer::where('mobile', $data['mobile_number'])->first();
@@ -134,15 +123,7 @@ class PosCustomerCartService
                 'mobile_number' => ['Customer not found'],
             ]);
         }
-
-        if ($cart->customer_id !== $customer->id) {
-            throw ValidationException::withMessages([
-                'mobile_number' => ['This customer does not own the cart'],
-            ]);
-        }
-
         return [
-            'cart' => $cart,
             'customer' => $customer,
         ];
     }

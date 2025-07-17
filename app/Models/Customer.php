@@ -1,4 +1,5 @@
 <?php
+
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -23,5 +24,9 @@ class Customer extends Model
                 $model->{$model->getKeyName()} = (string) Str::uuid();
             }
         });
+    }
+    public function cart()
+    {
+        return $this->hasOne(Cart::class)->where('status', 'active');
     }
 }

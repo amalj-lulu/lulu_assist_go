@@ -44,7 +44,7 @@ class CartService
                 $cart = Cart::create([
                     'token' => Str::uuid()->toString(),
                     'customer_id' => $request->customer_id,
-                    'created_by' => auth()->id(),
+                    'created_by' => $request->workstation ?? auth()->id(),
                     'status' => 'active',
                 ]);
             }
@@ -58,7 +58,7 @@ class CartService
                         'data' => null
                     ], 404);
                 }
-                $this->addOrUpdateItem($cart, $item, auth()->id());
+                $this->addOrUpdateItem($cart, $item,$item['created_by'] ?? auth()->id());
             }
 
             DB::commit();

@@ -6,11 +6,14 @@ use App\Exceptions\JsonApiException;
 use App\Http\Controllers\Controller;
 use App\Models\Cart;
 use App\Models\Customer;
+use App\Models\CustomerAttempt;
+use App\Models\Product;
 use App\Services\CartService;
 use App\Services\Pos\PosCustomerCartService;
 use App\Services\ProductService;
 use App\Services\SapProductService;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\ValidationException;
 
 class PosCustomerCartController extends Controller
@@ -42,26 +45,30 @@ class PosCustomerCartController extends Controller
     {
         try {
             $request->validate([
-                'token' => 'required|uuid',
                 'mobile_number' => 'required|string|min:10|max:15'
             ]);
 
-            $result = $this->posCartService->validateCartAndCustomer($request->only('token', 'mobile_number'));
-            $cart = $result['cart'];
+            $result = $this->posCartService->validateCustomer($request->only('mobile_number'));
             $customer = $result['customer'];
+            if (!$request->has('customer_id') || empty($request->customer_id)) {
+                $request->merge([
+                    'customer_id' => $customer->id ?? 0
+                ]);
+            }
+            // if (!$request->has('created_by') || empty($request->created_by)) {
+            //     $request->merge([
+            //         'created_by' => $request->workstation ?? 0
+            //     ]);
+            // }
+            // $productId = Product::where('ean_number', $request->ean_number)->value('id');
+            // if (!$request->has('product_id') || empty($request->product_id)) {
+            //     $request->merge([
+            //         'product_id' => $productId ?? 0
+            //     ]);
+            // }
 
-            if (!is_array($request->serial_numbers)) {
-                $request->merge([
-                    'serial_numbers' => [(string) $request->serial_numbers]
-                ]);
-            }
-            if (!$request->has('created_by') || empty($request->created_by)) {
-                $request->merge([
-                    'created_by' => $request->workstation ?? 0
-                ]);
-            }
-            $this->cartService->checkSerialNumber($cart->id, null, $request->serial_numbers,$request->ean_number);
-            return $this->cartService->addItemToCart($request, $cart->id);
+            $request = $this->transformPosOrder($request);
+            return $this->cartService->storeCartWithItems($request);
         } catch (JsonApiException $e) {
             return response()->json($e->response, $e->getCode());
         } catch (ValidationException $e) {
@@ -75,16 +82,57 @@ class PosCustomerCartController extends Controller
             return response()->json(['error' => $e->getMessage()], $e->getCode());
         }
     }
+    public function transformPosOrder(Request $request): Request
+    {
+        $customerId = $request->input('customer_id');
+        $items = $request->input('items', []);
+
+
+        $transformedItems = [];
+
+        foreach ($items as $item) {
+            $ean = $item['ean_number'] ?? null;
+
+            // Get product ID from DB using EAN
+            $productId = Product::where('ean_number', $ean)->value('id');
+
+            if (!$productId) {
+                continue; // Or throw exception
+            }
+
+            $transformedItems[] = [
+                'product_id' => $productId,
+                'quantity' => $item['quantity'] ?? 1,
+                'delivery_type' => $item['delivery_type'] ?? 0,
+                'serial_numbers' => $item['serial_numbers'] ?? [],
+                'created_by' =>  $request->input('workstation') ?? 'system',
+            ];
+        }
+
+        // Prepare the transformed request payload
+        $transformedData = [
+            'customer_id' => $customerId,
+            'workstation' => $request->input('workstation'),
+            'items' => $transformedItems,
+        ];
+
+        // Return a new request instance with transformed structure
+        return new Request($transformedData);
+    }
+
     public function removeItem(Request $request)
     {
         try {
             $request->validate([
-                'token' => 'required|uuid',
                 'mobile_number' => 'required|string|min:10|max:15'
             ]);
-            $result = $this->posCartService->validateCartAndCustomer($request->only('token', 'mobile_number'));
-            $cart = $result['cart'];
+            $result = $this->posCartService->validateCustomer($request->only('mobile_number'));
             $customer = $result['customer'];
+            $cart = Cart::where('customer_id', $customer->id)
+                ->where('status', 'active')
+                ->latest()
+                ->first();
+
             if (!$request->has('created_by') || empty($request->created_by)) {
                 $request->merge([
                     'created_by' => $request->workstation ?? 0
@@ -122,7 +170,6 @@ class PosCustomerCartController extends Controller
     {
         try {
             $request->validate([
-                'token' => 'required|uuid',
                 'mobile_number' => 'required|string|min:10|max:15'
             ]);
 
@@ -179,10 +226,6 @@ class PosCustomerCartController extends Controller
             $request->validate([
                 'ean_number' => 'required|string',
             ]);
-
-            // Step 2: Validate cart/customer using service
-            $result = $this->posCartService->validateCartAndCustomer($request->only(['token', 'mobile_number']));
-
             // Step 3: Fetch product from SAP
             $ean = $request->ean_number;
             $sapProduct = $this->sapService->fetchProductByEan($ean);
@@ -241,5 +284,57 @@ class PosCustomerCartController extends Controller
                 ]
             ], 500);
         }
+    }
+    public function customerRegistration(Request $request, CartService $cartService)
+    {
+        $validator = Validator::make($request->all(), [
+            'name'   => 'required|string|max:255',
+            'mobile' => 'required|string',
+            'workstation' => 'required|string',
+        ]);
+        if ($validator->fails()) {
+            return response()->json([
+                'status'  => false,
+                'message' => 'Validation failed.',
+                'errors'  => $validator->errors(),
+            ], 422);
+        }
+
+        $validated = $validator->validated();
+
+        $performedBy = $validated['workstation'] ;
+
+
+        // Check if customer exists
+        $customer = Customer::where('mobile', $validated['mobile'])->first();
+
+        if (!$customer) {
+            $customer = Customer::create($validated);
+            $message = 'Customer registered successfully.';
+            $statusCode = 201;
+            $action = 'created';
+        } else {
+            $action = 'existing';
+            $message = 'Customer already exists.';
+            $statusCode = 200;
+        }
+
+        CustomerAttempt::create([
+            'customer_id' => $customer->id ?? null,
+            'mobile' => $validated['mobile'],
+            'action' => $action,
+            'performed_by' => $performedBy,
+        ]);
+
+        $cart = $cartService->getCartDetailsByMobile($customer->id);
+
+        return response()->json([
+            'status'  => true,
+            'message' => $message,
+            'data'    => [
+                'customer' => $customer,
+                'cart'     => $cart
+            ],
+        ], $statusCode);
     }
 }
