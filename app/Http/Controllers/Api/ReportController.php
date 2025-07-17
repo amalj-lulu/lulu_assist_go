@@ -15,31 +15,42 @@ class ReportController extends Controller
      */
     public function orderReport(Request $request)
     {
-        $period = $request->input('period', 'daily'); // default: daily
 
         $orders = Order::with([
-                'user',
-                'items.product',
-                'items.serials'
-            ])
-            ->whereBetween('created_at', $this->getDateRange($period))
+            'items.product',
+            'items.creator',
+            'items.serials' => fn($q) => $q->where('created_by', auth()->id()),
+        ])
+            ->whereHas('items.serials', fn($q) => $q->where('created_by', auth()->id()))
+            ->whereBetween('created_at', $this->getDateRange($request->input('period', 'daily')))
             ->get();
 
+
         $grouped = $orders->map(function ($order) {
-            return [
-                'order_id'   => $order->id,
-                'order_date' => $order->created_at->toDateString(),
-                'user_id'    => $order->user_id,
-                'user_name'  => $order->user->name ?? '',
-                'items'      => $order->items->map(function ($item) {
-                    return [
+            $serials = collect();
+            $itemDetails = [];
+
+            foreach ($order->items as $item) {
+                foreach ($item->serials as $serial) {
+                    $serials->push($serial);
+                    $itemDetails[] = [
                         'order_item_id' => $item->id,
                         'product_id'    => $item->product_id,
                         'product_name'  => $item->product->product_name ?? '',
-                        'quantity'      => $item->quantity,
-                        'total_price'   => $item->serials->sum('price'),
+                        'serial_number' => $serial->serial_number,
+                        'price'         => $serial->price,
+                        'user_id'       => $item->creator?->id,
+                        'user_name'     => $item->creator?->name,
                     ];
-                })->values(),
+                }
+            }
+
+            return [
+                'order_id'     => $order->id,
+                'order_date'   => $order->created_at->toDateString(),
+                'item_count'   => $serials->count(),               // serial-based count
+                'total_price'  => $serials->sum('price'),          // serial-based total
+                'items'        => $itemDetails,
             ];
         });
 
@@ -48,6 +59,8 @@ class ReportController extends Controller
             'data'   => $grouped->values(),
         ]);
     }
+
+
 
     /**
      * Detailed serial number report for a single order item.
@@ -75,13 +88,13 @@ class ReportController extends Controller
      */
     private function getDateRange(string $period): array
     {
-        $today = Carbon::today();
+        $now = now(); // use Laravel timezone-aware helper
 
         return match ($period) {
-            'daily' => [$today->startOfDay(), $today->endOfDay()],
-            'weekly' => [$today->startOfWeek(), $today->endOfWeek()],
-            'monthly' => [$today->startOfMonth(), $today->endOfMonth()],
-            default => [$today->startOfDay(), $today->endOfDay()],
+            'daily' => [$now->copy()->startOfDay(), $now->copy()->endOfDay()],
+            'weekly' => [$now->copy()->startOfWeek(), $now->copy()->endOfWeek()],
+            'monthly' => [$now->copy()->startOfMonth(), $now->copy()->endOfMonth()],
+            default => [$now->copy()->startOfDay(), $now->copy()->endOfDay()],
         };
     }
 }
