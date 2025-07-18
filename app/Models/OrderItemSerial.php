@@ -13,6 +13,7 @@ class OrderItemSerial extends Model
         'order_item_id',
         'serial_number',
         'price',
+        'created_by'
     ];
 
     public function orderItem()

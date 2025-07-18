@@ -77,10 +77,10 @@ class OrderService
 
                 foreach ($item->serials as $serial) {
                     $serialPrice = $priceMapper[$product->ean_number] ?? $product->price;
-
                     OrderItemSerial::create([
                         'order_item_id' => $orderItem->id,
                         'serial_number' => $serial->serial_number,
+                        'created_by' => $serial->created_by,
                         'price' => $serialPrice,
                     ]);
 

@@ -15,6 +15,7 @@ class ReportController extends Controller
      */
     public function orderReport(Request $request)
     {
+        $perPage = $request->input('per_page', 10); // Default to 10 per page
 
         $orders = Order::with([
             'items.product',
@@ -23,10 +24,10 @@ class ReportController extends Controller
         ])
             ->whereHas('items.serials', fn($q) => $q->where('created_by', auth()->id()))
             ->whereBetween('created_at', $this->getDateRange($request->input('period', 'daily')))
-            ->get();
+            ->paginate($perPage);
 
-
-        $grouped = $orders->map(function ($order) {
+        // Transform paginated data using map() but preserve pagination info
+        $transformed = $orders->getCollection()->map(function ($order) {
             $serials = collect();
             $itemDetails = [];
 
@@ -48,17 +49,21 @@ class ReportController extends Controller
             return [
                 'order_id'     => $order->id,
                 'order_date'   => $order->created_at->toDateString(),
-                'item_count'   => $serials->count(),               // serial-based count
-                'total_price'  => $serials->sum('price'),          // serial-based total
+                'item_count'   => $serials->count(),
+                'total_price'  => $serials->sum('price'),
                 'items'        => $itemDetails,
             ];
         });
 
+        // Replace the collection with the transformed one
+        $orders->setCollection($transformed);
+
         return response()->json([
             'status' => true,
-            'data'   => $grouped->values(),
+            'data' => $orders,
         ]);
     }
+
 
 
 
