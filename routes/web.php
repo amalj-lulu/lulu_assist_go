@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\OrderReportController;
 use App\Http\Controllers\CustomerController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\ProfileController;
@@ -40,6 +41,7 @@ Route::middleware(['auth', 'verified'])->prefix('admin')->group(function () {
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
     Route::resource('plant-user', PlantUserController::class);
     Route::resource('customers', CustomerController::class);
+    Route::get('order-report', [OrderReportController::class, 'index']);
 
 });
 
