@@ -5,11 +5,19 @@ namespace App\Services;
 use App\Models\Order;
 use Illuminate\Support\Collection;
 use Illuminate\Pagination\LengthAwarePaginator;
+use Illuminate\Support\Facades\Auth;
 
 class OrderReportService
 {
     public function getOrderReport(array $filters = []): array
     {
+        $authUser = Auth::user();
+        $role = $authUser->role; // adjust if using spatie or guards
+
+        // Auto-set user_id if not passed and role is not admin
+        if (!isset($filters['user_id']) && $role !== 'admin') {
+            $filters['user_id'] = $authUser->id;
+        }
         $userId  = $filters['user_id'] ?? null;
         $period  = $filters['period'] ?? 'daily';
         $perPage = $filters['per_page'] ?? 10;
