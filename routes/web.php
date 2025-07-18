@@ -41,7 +41,11 @@ Route::middleware(['auth', 'verified'])->prefix('admin')->group(function () {
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
     Route::resource('plant-user', PlantUserController::class);
     Route::resource('customers', CustomerController::class);
-    Route::get('order-report', [OrderReportController::class, 'index']);
+    Route::get('order-report', [OrderReportController::class, 'index'])->name('order-report');
+    Route::get('order-report/export-excel', [OrderReportController::class, 'exportExcel'])->name('order-report.export.excel');
+
+Route::get('order-report/export/pdf', [OrderReportController::class, 'exportPdf'])
+    ->name('order-report.export.pdf');
 
 });
 

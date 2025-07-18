@@ -22,6 +22,7 @@
         "@popperjs/core": "^2.11.8",
         "@ttskch/select2-bootstrap4-theme": "^1.5.2",
         "bootstrap": "^5.3.7",
+        "bootstrap-icons": "^1.13.1",
         "datatables.net-bs5": "^2.3.2",
         "jquery": "^3.7.1",
         "select2": "^4.1.0-rc.0"

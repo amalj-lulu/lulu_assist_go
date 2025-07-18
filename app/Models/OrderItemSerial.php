@@ -20,4 +20,8 @@ class OrderItemSerial extends Model
     {
         return $this->belongsTo(OrderItem::class);
     }
+    public function creator()
+    {
+        return $this->belongsTo(User::class, 'created_by');
+    }
 }
